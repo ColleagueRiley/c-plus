@@ -1,5 +1,5 @@
 /*
-sili.h - An alternative to the C/C++ standard library.
+sili.h - a cross-platform software toolchain for modern C programming
 ===========================================================================
 	- YOU MUST DEFINE 'SI_IMPLEMENTATION' in EXACTLY _one_ C file that includes
 	this header, BEFORE the include like this:
@@ -339,6 +339,9 @@ SI_STATIC_ASSERT(sizeof(f64) == 8);
 	typedef const char* cstring;
 #endif
 
+#define SI_OKAY  0
+#define SI_ERROR -1
+
 #define SI_BIT(x) (1 << (x))
 
 #define SI_KILO(x) (       (x) * (usize)1024)
@@ -346,22 +349,21 @@ SI_STATIC_ASSERT(sizeof(f64) == 8);
 #define SI_GIGA(x) (SI_MEGA(x) * (usize)1024)
 #define SI_TERA(x) (SI_GIGA(x) * (usize)1024)
 
+#define SI_BUILTIN_UNREACHABLE() __builtin_unreachable()
+
+#define SI_ENUM(type, name) type name; enum
+
 #define SI_MULTILINE(...) __VA_ARGS__
 #define SI_STR_MULTILINE(...) #__VA_ARGS__
 
-#define SI_ENUM_DECLARE(type, name) type name; enum
-
-#define SI_OKAY  0
-#define SI_ERROR -1
-
 #define SI_UNUSED(x) (void)(x) /* NOTE(EimaMei) Should be used when you want to supress "parameter 'X' set but not used" errors. */
-
-#define si_swap(a, b) do { typeof((a)) tmp = (a); (a) = (b); (b) = tmp; } while (0)
-#define si_between(x, lower, upper) (((lower) <= (x)) && ((x) <= (upper)))
 
 #if defined(SI_STANDARD_ANSI) || defined(SI_COMPILER_MSVC) /* NOTE(EimaMei): Fuck Microsoft. */
 	#define typeof(value) __typeof__(value)
 #endif
+
+#define si_swap(a, b) do { typeof((a)) tmp = (a); (a) = (b); (b) = tmp; } while (0)
+#define si_between(x, lower, upper) (((lower) <= (x)) && ((x) <= (upper)))
 
 #if defined(SI_MEMORY_LOGGING)
 	#define SI_MEMORY_LOGGING_IMPLEMENTATION
@@ -409,10 +411,15 @@ usize si_impl_assert_msg(bool condition, cstring condition_str, cstring message,
 *
 *
 	========================
-	| siAny & siFunction   |
+	| Mics/General         |
 	========================
 */
 
+/*
+	========================
+	| siAny                |
+	========================
+*/
 typedef struct siAny {
 	usize type_width;
 	rawptr ptr;
@@ -421,11 +428,28 @@ typedef struct siAny {
 #define si_any_make(value) (siAny){sizeof(typeof(value)), &(typeof(value)){value} }
 #define si_any_get(any, type) ((any.ptr != nil) ? *((type*)any.ptr) : (type)SI_ASSERT_NOT_NULL(any.ptr))
 
+/*
+	========================
+	| siFunction           |
+	========================
+*/
 typedef struct siFunction {
    rawptr (*ptr)(rawptr);
 } siFunction;
 
 #define siFunc(func) (siFunction){(rawptr (*)(rawptr))func}
+
+/*
+	========================
+	| Other                |
+	========================
+*/
+typedef SI_ENUM(usize, siDirection) {
+	SI_DIRECTION_LEFT,
+	SI_DIRECTION_RIGHT
+};
+
+void si_ptr_move_by(rawptr ptr, usize sizeof_ptr, usize move_by, siDirection direction);
 
 /*
 *
@@ -548,7 +572,8 @@ const siOptionalStruct SI_OPTIONAL_NULL = {{0, nil}, false};
 typedef struct siArrayHeader {
 	u32 len;
 	u32 capacity;
-	u32 type_width;
+	u16 type_width;
+	u16 grow;
 } siArrayHeader;
 
 #define siArray(type) type*
@@ -654,21 +679,23 @@ char si_string_back(siString str);
 void si_string_sub(siString str, usize begin, usize end, char* result);
 
 isize si_string_find(siString str, cstring cstr);
-isize si_string_find_ex(siString str, usize start, usize end, cstring cstr);
+isize si_string_find_ex(siString str, usize start, usize end, cstring cstr, usize cstr_len);
 isize si_string_rfind(siString str, cstring cstr);
 isize si_string_rfind_ex(siString str, usize start, usize end, cstring cstr);
 
 isize si_string_join(siString* str, cstring cstr, cstring separator);
 isize si_string_set(siString* str, cstring cstr);
-isize si_string_replace(siString* str, cstring old_str, cstring new_str);
+void si_string_replace(siString* str, cstring old_str, cstring new_str);
 isize si_string_trim(siString* str, cstring cut_set);
+void si_string_stringify(siString* str);
 
 isize si_string_append(siString* str, cstring other);
 isize si_string_append_len(siString* str, cstring other, usize other_len);
 isize si_string_push_back(siString* str, char other);
 
 void si_string_insert(siString* str, cstring cstr, usize index);
-void si_string_erase(siString* str, usize begin, usize end);
+void si_string_insert_ex(siString* str, cstring cstr, usize cstr_len, usize index, bool erase_index);
+void si_string_erase(siString* str, usize index, usize len);
 void si_string_remove_cstr(siString* str, cstring cstr);
 void si_string_swap(siString* str, cstring cstr1, cstring cstr2);
 
@@ -680,14 +707,13 @@ isize si_string_strip(siString* str); /* NOTE(EimaMei); This strips any leading 
 isize si_string_reverse(siString* str);
 isize si_string_reverse_len(siString* str, usize len);
 
-
 siArray(siString) si_string_split(siString str, cstring separator);
 bool si_strings_are_equal(cstring lhs, cstring rhs);
 isize si_string_clear(siString* str);
 
 isize si_string_free(siString str);
 isize si_string_make_space_for(siString* str, usize add_len);
-void si_string_shrink_to_fit(siString str);
+void si_string_shrink_to_fit(siString* str);
 
 #endif
 
@@ -759,14 +785,6 @@ cstring si_i64_to_cstr(i64 num);
 	|  siFile & siPath     |
 	========================
 */
-typedef enum siFileMode {
-	SI_FILE_MODE_READ = SI_BIT(0),
-	SI_FILE_MODE_WRITE = SI_BIT(1),
-	SI_FILE_MODE_READ_WRITE = SI_BIT(2),
-	SI_FILE_MODE_APPEND = SI_BIT(3),
-	SI_FILE_MODE_APPEND_READ = SI_BIT(4),
-	SI_FILE_MODE_CREATE = SI_BIT(5)
-} siFileMode;
 
 typedef struct siFile {
 	siString path;
@@ -804,7 +822,7 @@ bool si_path_is_relative(cstring path);
 */
 siFile si_file_create(cstring path);
 siFile si_file_open(cstring path);
-siFile si_file_open_mode(cstring path, siFileMode mode);
+siFile si_file_open_mode(cstring path, const char* mode);
 
 usize si_file_size(siFile file);
 void si_file_size_update(siFile* file);
@@ -900,7 +918,7 @@ void si_thread_set_priority(siThread t, i32 priority);
 	#define SI_TIME_FIRST_WEEKDAY_MONDAY
 #endif
 
-typedef SI_ENUM_DECLARE(usize, siMonth) {
+typedef SI_ENUM(usize, siMonth) {
 	siJanuary = 1,
 	siFebruary,
 	siMarch,
@@ -917,7 +935,7 @@ typedef SI_ENUM_DECLARE(usize, siMonth) {
 
 /* NOTE(EimaMi): For whatever reason some places uses Sunday as the first weekday, while MOST of Europe views monday as the first weekday.
 				 So by default Monday will be set as the first weekday with the options to change it depending on your taste. */
-typedef SI_ENUM_DECLARE(usize, siWeek) {
+typedef SI_ENUM(usize, siWeek) {
 	#if defined(SI_TIME_FIRST_WEEKDAY_MONDAY)
 		Monday,
 		Tuesday,
@@ -1179,17 +1197,26 @@ rawptr si_realloc(rawptr ptr, usize old_size, usize new_size) {
 
 void si_sleep(usize miliseconds) {
 	#if defined(SI_SYSTEM_WINDOWS)
-	Sleep(miliseconds);
+		Sleep(miliseconds);
 	#else
-	usleep(miliseconds * 1000);
+		usleep(miliseconds * 1000);
 	#endif
 }
+
+void si_ptr_move_by(rawptr ptr, usize sizeof_ptr, usize move_by, siDirection direction) {
+	switch (direction) { /* NOTE(EimaMei): Did you really think I was gonna use 'memmove'? That's much slower! */
+		case SI_DIRECTION_RIGHT: memcpy((siByte*)ptr + move_by,  ptr, sizeof_ptr); break;
+		case SI_DIRECTION_LEFT:  memcpy((siByte*)ptr - move_by,  ptr, sizeof_ptr); break;
+		default: SI_BUILTIN_UNREACHABLE();
+	}
+}
+
 #endif
 
 #if defined(SI_PAIR_IMPLEMENTATION) && !defined(SI_PAIR_UNDEFINE)
 
 rawptr si_impl_pair_make(siAny first, siAny second) {
-	siByte* res = malloc(first.type_width + second.type_width);
+	siByte* res = (siByte*)malloc(first.type_width + second.type_width);
 	memcpy(res, first.ptr, first.type_width);
 	memcpy(res + first.type_width, second.ptr, second.type_width);
 
@@ -1213,7 +1240,7 @@ inline siArray(void) si_array_copy(siArray(void) array) {
 	return si_array_make_list(array, header->type_width, header->len);
 }
 siArray(void) si_array_make_reserve(usize sizeof_element, usize count) {
-	siByte* ptr = malloc(sizeof(siArrayHeader) + (sizeof_element * count));
+	siByte* ptr = (siByte*)malloc(sizeof(siArrayHeader) + (sizeof_element * count));
 	siArray(void) array = ptr + sizeof(siArrayHeader);
 
 	siArrayHeader* header = SI_ARRAY_HEADER(array);
@@ -1355,7 +1382,7 @@ isize si_impl_array_append(rawptr array_address, siAny value) {
 	SI_ASSERT_MSG(value.type_width <= header->type_width, "The given value's sizeof is too large compared to the elements' in the arra");
 
 	if (header->len == header->capacity) {
-		siByte* result = si_realloc(header, sizeof(siArrayHeader) + header->capacity * header->type_width, sizeof(siArrayHeader) + 2 * header->capacity * header->type_width);
+		siByte* result = (siByte*)si_realloc(header, sizeof(siArrayHeader) + header->capacity * header->type_width, sizeof(siArrayHeader) + 2 * header->capacity * header->type_width);
 		SI_ASSERT_NOT_NULL(result);
 
 		*array = result + sizeof(siArrayHeader);
@@ -1516,12 +1543,11 @@ void si_string_sub(siString str, usize begin, usize end, char* result) {
 }
 
 inline isize si_string_find(siString str, cstring cstr) {
-	return si_string_find_ex(str, 0, si_string_len(str), cstr);
+	return si_string_find_ex(str, 0, si_string_len(str), cstr, si_cstr_len(cstr));
 }
-isize si_string_find_ex(siString str, usize start, usize end, cstring cstr) {
+isize si_string_find_ex(siString str, usize start, usize end, cstring cstr, usize cstr_len) {
     SI_ASSERT_NOT_NULL(str);
 
-	usize cstr_len = si_cstr_len(cstr);
 	bool found = false;
 
 	usize i;
@@ -1596,53 +1622,26 @@ isize si_string_set(siString* str, cstring cstr) {
 
 	return SI_OKAY;
 }
-isize si_string_replace(siString* str, cstring old_value, cstring new_value) {
-	usize str_len = si_string_len(*str);
-	usize new_len = si_cstr_len(new_value);
+void si_string_replace(siString* str, cstring old_value, cstring new_value) {
 	usize old_len = si_cstr_len(old_value);
+	usize new_len = si_cstr_len(new_value);
 
-	isize pos = si_string_find(*str, old_value);
+	isize index = 0;
+	siString cur_str = nil;
+	bool old_len_bigger = (old_len > new_len);
 
-	siStringHeader* header = SI_STRING_HEADER(*str);
-	header->len += new_len - old_len;
-
-	if (pos == SI_ERROR) {
-		return SI_ERROR;
-	}
-
-	if (old_len < new_len) {
-		isize result = si_string_make_space_for(str, new_len - old_len);
-		SI_ASSERT_MSG(result == SI_OKAY, "Failed to make space for string");
-
-		usize i, j;
-		char saved_value = '\0';
-		for (j = 0; j < new_len - old_len; j++) { /* NOTE(EimaMei): There is probably a much faster way to do this other than looping through the string multiple times. However, as a temporary solution, it works nicely. */
-			for (i = pos; i < str_len + new_len - old_len; i++) {
-				char og = (*str)[j + i];
-				(*str)[j + i] = saved_value;
-				saved_value = og;
-			}
+	while (true) {
+		cur_str = *str;
+		index = si_string_find_ex(cur_str, index, si_array_len(cur_str), old_value, old_len);
+		if (index == SI_ERROR) {
+			break;
 		}
-	}
 
-	if (old_len > new_len) {
-		usize i, j;
-		char saved_value = '\0';
-		for (j = 0; j < old_len - new_len; j++) {  /* NOTE(EimaMei): Read the previous comment above. */
-			for (i = str_len; i != (usize)SI_ERROR; i--) {
-				char og = (*str)[j + i];
-				(*str)[j + i] = saved_value;
-				saved_value = og;
-			}
+		if (old_len_bigger) {
+			si_string_erase(str, index, old_len);
 		}
+		si_string_insert_ex(str, new_value, new_len, index - old_len_bigger, !old_len_bigger);
 	}
-
-	usize i;
-	for (i = 0; i < new_len; i++) {
-		(*str)[i + pos] = new_value[i];
-	}
-
-	return pos;
 }
 isize si_string_trim(siString* str, cstring cut_set) {
 	char* start = *str;
@@ -1666,6 +1665,21 @@ isize si_string_trim(siString* str, cstring cut_set) {
 	(*str)[len] = '\0';
 
 	return SI_OKAY;
+}
+void si_string_stringify(siString* str) {
+	siStringHeader* header = SI_STRING_HEADER(*str);
+	header->len += 2;
+
+	if (header->capacity < header->len) {
+		isize res = si_string_make_space_for(str, 2);
+		SI_ASSERT_MSG(res == SI_OKAY, "Failed to allocate space to str");
+		header = SI_STRING_HEADER(*str);
+	}
+	siString cur_str = *str;
+
+	si_ptr_move_by(cur_str, header->len, 1, SI_DIRECTION_RIGHT);
+	cur_str[0] = '\"';
+	cur_str[header->len - 1] = '\"';
 }
 
 inline isize si_string_append(siString* str, cstring other) {
@@ -1692,34 +1706,37 @@ inline isize si_string_push_back(siString* str, char other) {
 	return si_string_append_len(str, &other, 1);
 }
 
-void si_string_insert(siString* str, cstring cstr, usize index) {
+inline void si_string_insert(siString* str, cstring cstr, usize index) {
+	si_string_insert_ex(str, cstr, si_cstr_len(cstr), index, false);
+}
+void si_string_insert_ex(siString* str, cstring cstr, usize cstr_len, usize index, bool erase_index) {
 	siStringHeader* header = SI_STRING_HEADER(*str);
 	usize previous_len = header->len;
-	usize cstr_len = si_cstr_len(cstr);
 	usize before_index_len = previous_len - index;
-	header->len += cstr_len;
+	header->len += cstr_len - erase_index;
 
 	if (header->capacity < header->len) {
-		isize result = si_string_make_space_for(str, cstr_len);
+		isize result = si_string_make_space_for(str, header->len - header->capacity);
 		SI_ASSERT_MSG(result == SI_OKAY, "Failed to make space for string");
 		header = SI_STRING_HEADER(*str); /* NOTE(EimaMei): For some reason we have to refresh the header pointer on Linux. Somewhat makes sense but also what and why. */
 	}
 	siString cur_str = *str;
 
-	char* ptr = memcpy(cur_str + header->len - before_index_len, cur_str + index, before_index_len);
-	memcpy(cur_str + index + 1, cstr, cstr_len);
+	char* ptr = (char*)memcpy(cur_str + header->len - before_index_len, cur_str + index, before_index_len);
+	memcpy(cur_str + index + !erase_index, cstr, cstr_len);
 	SI_ASSERT_NOT_NULL(ptr);
-	ptr[header->len] = '\0';
+	ptr[before_index_len] = '\0';
 }
-void si_string_erase(siString* str, usize begin, usize end) {
-	usize after_index_len = begin + end;
+void si_string_erase(siString* str, usize index, usize len) {
+	usize after_index_len = index + len;
 	siString cur_str = *str;
+	usize str_len = si_string_len(cur_str);
 
-	char* ptr = memcpy(cur_str + begin, cur_str + after_index_len, si_string_len(cur_str) - after_index_len);
+	char* ptr = (char*)memcpy(cur_str + index, cur_str + after_index_len, str_len - after_index_len);
 	SI_ASSERT_NOT_NULL(ptr);
-	ptr[si_string_len(cur_str) - after_index_len] = '\0';
+	ptr[str_len - after_index_len] = '\0';
 
-	SI_STRING_HEADER(cur_str)->len -= after_index_len;
+	SI_STRING_HEADER(cur_str)->len -= len;
 }
 void si_string_remove_cstr(siString* str, cstring cstr) {
 	siStringHeader* header = SI_STRING_HEADER(*str);
@@ -1738,7 +1755,7 @@ void si_string_remove_cstr(siString* str, cstring cstr) {
 
 		usize after_index_len = index + cstr_len;
 
-		char* ptr = memcpy(cur_str + index, cur_str + after_index_len, cur_len - after_index_len);
+		char* ptr = (char*)memcpy(cur_str + index, cur_str + after_index_len, cur_len - after_index_len);
 		SI_ASSERT_NOT_NULL(ptr);
 		ptr[cur_len - after_index_len] = '\0';
 
@@ -1843,7 +1860,7 @@ siArray(siString) si_string_split(siString str, cstring separator) {
 	siString original = str;
 
 	while (true) {
-		isize pos = si_string_find_ex(str, begin_pos, si_string_len(str), separator);
+		isize pos = si_string_find_ex(str, begin_pos, si_string_len(str), separator, separator_len);
 
 		if (pos == SI_ERROR) {
 			pos_buffer[count] = si_string_len(str);
@@ -1855,7 +1872,8 @@ siArray(siString) si_string_split(siString str, cstring separator) {
 
 		begin_pos = pos + separator_len;
 	}
-	siArray(siString) res = si_array_make_list(&(rawptr){nil}, sizeof(*res), count);
+	siArray(siString) res = (siArray(siString))si_array_make_reserve(sizeof(*res), count); /* NOTE(EimaMei): Fuck C++. Seriously, what the fuck? WHY DO WE HAVE TO THIS??? */
+	SI_ARRAY_HEADER(res)->len = count;
 
 	usize i;
 	for (i = 0; i < count; i++) {
@@ -1919,7 +1937,15 @@ isize si_string_make_space_for(siString* str, usize add_len) {
 
 	return SI_OKAY;
 }
-void si_string_shrink_to_fit(siString str);
+void si_string_shrink_to_fit(siString* str) {
+	SI_ASSERT_NOT_NULL(str);
+	siString cur_str = *str;
+	siStringHeader copy = *SI_STRING_HEADER(cur_str);
+
+	siStringHeader* header = realloc(SI_STRING_HEADER(cur_str), sizeof(siStringHeader*) + copy.len + 1);
+	*header = copy;
+	header->capacity = header->len;
+}
 #endif
 
 #if defined(SI_CHAR_IMPLEMENTATION) && !defined(SI_STRING_UNDEFINE)
@@ -2169,26 +2195,15 @@ inline bool si_path_is_relative(cstring path) {
 
 
 inline siFile si_file_create(cstring path) {
-	return si_file_open_mode(path, SI_FILE_MODE_CREATE);
+	return si_file_open_mode(path, "w");
 }
 inline siFile si_file_open(cstring path) {
-	return si_file_open_mode(path, SI_FILE_MODE_READ);
+	return si_file_open_mode(path, "r");
 }
-siFile si_file_open_mode(cstring path, siFileMode mode) {
+siFile si_file_open_mode(cstring path, cstring mode) {
 	SI_ASSERT_NOT_NULL(path);
 
-	siString mode_str = nil;
-	switch (mode) {
-		case SI_FILE_MODE_READ: mode_str = "r"; break;
-		case SI_FILE_MODE_WRITE: mode_str = "w"; break;
-		case SI_FILE_MODE_READ_WRITE: mode_str = "r+"; break;
-		case SI_FILE_MODE_APPEND: mode_str = "a"; break;
-		case SI_FILE_MODE_APPEND_READ: mode_str = "a+"; break;
-		case SI_FILE_MODE_CREATE: mode_str = "w+"; break;
-		default: SI_ASSERT_MSG(mode_str != nil, "Provided mode doesn't exist"); break;
-	}
-
-	FILE* f = fopen(path, mode_str);
+	FILE* f = fopen(path, mode);
 
 	if (f == nil) {
 		siString message = nil;
@@ -2225,18 +2240,21 @@ inline void si_file_size_update(siFile* file) {
 }
 
 inline siString si_file_read(siFile file) {
-	return si_file_read_at(file, 0);
-}
-siString si_file_read_at(siFile file, usize offset) {
 	SI_ASSERT_NOT_NULL(file.ptr);
-	usize read_len = file.size - offset;
-	char tmp[read_len];
 
+	char tmp[file.size];
+	fread(tmp, file.size, 1, file.ptr);
+
+	return si_string_make_len(tmp, file.size);
+}
+inline siString si_file_read_at(siFile file, usize offset) {
 	si_file_seek(file, offset);
-	fread(tmp, read_len, 1, file.ptr);
+	file.size -= offset;
+	siString res = si_file_read(file);
+	file.size += offset;
 	si_file_seek_to_end(file);
 
-	return si_string_make_len(tmp, read_len);
+	return res;
 }
 /*
 	NOTE/TODO(EimaMei): This has a huge performance hit if the file is, lets say, 400 lines in length. That's over 400
@@ -2289,7 +2307,7 @@ isize si_file_write_at_line(siFile* file, cstring content, usize index) {
 	buffer[index] = (siString)content;
 	siString new_file_content = si_array_to_sistring(buffer, "\n");
 
-	siFile new_file = si_file_open_mode(file->path, SI_FILE_MODE_CREATE);
+	siFile new_file = si_file_open_mode(file->path, "w");
 	si_file_write_len(&new_file, new_file_content, si_string_len(new_file_content));
 
 	usize i;
