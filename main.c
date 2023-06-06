@@ -14,9 +14,20 @@
 
 unsigned int indent = 0;
 
+/* 
+1: found struct (keyword)
+2: inside struct definition
+*/
+unsigned int structMode; 
+
 siString* print_token(stb_lexer *lexer, siString* c_code) {
   switch (lexer->token) {
-    case CLEX_id        : strAppend(c_code, lexer->string); break;
+    case CLEX_id        : 
+          if (si_strings_are_equal(lexer->string, "struct"))
+            structMode++;
+          
+          strAppend(c_code, lexer->string); 
+          break;
     case CLEX_eq        : strAppendL(c_code, "==", 2); break;
     case CLEX_noteq     : strAppendL(c_code, "!=", 2); break;
     case CLEX_lesseq    : strAppendL(c_code, "<=", 2); break;
@@ -64,12 +75,18 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
         if (lexer->token >= 0 && lexer->token < 256) {
           switch(lexer->token) {
             case '{':
+                if (structMode == 1)
+                  structMode++;
+
                 indent++;
                 strAppendL(c_code, &lexer->token, 1);
                 strAppendL(c_code, "\n", 1);
                 break;
             
             case '}':
+              if (structMode == 2)
+                  structMode--;
+
               indent--;
 
               si_string_erase(c_code, si_string_len(*c_code) - 2, 2);
@@ -78,6 +95,8 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
               break;
 
             case ';':
+                structMode = 0;
+                
                 if (((*c_code)[si_string_len(*c_code) - 2] == '\n'))
                   si_string_erase(c_code, si_string_len(*c_code) - 2, 2);
                 else
@@ -97,6 +116,18 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
               strAppendL(c_code, &lexer->token, 1);
               break;
             
+            case ')':
+              
+
+              strAppendL(c_code, &lexer->token, 1);
+              break;
+
+            case '=':
+              structMode = false;
+
+              strAppendL(c_code, &lexer->token, 1);
+              break;
+
             default:
               strAppendL(c_code, &lexer->token, 1);
               break;
