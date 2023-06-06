@@ -12,6 +12,8 @@
 #define strAppendL si_string_append_len
 
 
+unsigned int indent = 0;
+
 siString* print_token(stb_lexer *lexer, siString* c_code) {
   switch (lexer->token) {
     case CLEX_id        : strAppend(c_code, lexer->string); break;
@@ -62,21 +64,38 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
         if (lexer->token >= 0 && lexer->token < 256) {
           switch(lexer->token) {
             case '{':
+                indent++;
                 strAppendL(c_code, &lexer->token, 1);
                 strAppendL(c_code, "\n", 1);
                 break;
             
             case '}':
+              indent--;
+
+              si_string_erase(c_code, si_string_len(*c_code) - 2, 2);
               strAppendL(c_code, &lexer->token, 1);
               strAppendL(c_code, "\n\n", 2);
               break;
 
             case ';':
-                si_string_erase(c_code, si_string_len(c_code) - 1, si_string_len(c_code));
+                if (((*c_code)[si_string_len(*c_code) - 2] == '\n'))
+                  si_string_erase(c_code, si_string_len(*c_code) - 2, 2);
+                else
+                  si_string_erase(c_code, si_string_len(*c_code) - 1, 1);
+                  
 
                 strAppendL(c_code, &lexer->token, 1);
+
+                if (((*c_code)[si_string_len(*c_code) - 3] == '\n')) strAppendL(c_code, "\n", 1);
                 strAppendL(c_code, "\n", 1);
                 break;
+
+            case '.':
+              if (si_string_back(*c_code) == ' ')
+                si_string_erase(c_code, si_string_len(*c_code) - 1, 1);
+              
+              strAppendL(c_code, &lexer->token, 1);
+              break;
             
             default:
               strAppendL(c_code, &lexer->token, 1);
@@ -88,15 +107,15 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
         
         break;
   }
-  
-  if (c_code[si_string_len(c_code) - 1] != si_string_back(c_code))
-    printf("hi\n");
 
-  if (c_code[si_string_len(c_code) - 1] != '\n') {
-    strAppendL(c_code, " ", 1);
-  }
-  else
-    printf("hi\n");
+  int i;
+
+  if (si_string_back(*c_code) == '\n' && indent)
+    for (i = 0; i < indent * 2; i++) 
+      strAppendL(c_code, " ", 1);    
+  else if (si_string_back(*c_code) != '\n' && si_string_back(*c_code) != '.')
+      strAppendL(c_code, " ", 1);
+
 }
 
 int main(int argc, char **argv) {
