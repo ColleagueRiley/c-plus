@@ -55,7 +55,7 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
               
                   if (!typedefCheck)
                     strAppendL(c_code, "typedef ", 8);
-                }
+              }
       
               else if (si_strings_are_equal(lexer->string, "typedef"))
                 typedefCheck = true;
@@ -112,7 +112,8 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
         if (lexer->token >= 0 && lexer->token < 256) {
           switch(lexer->token) {
             case '{':
-                structMode++;
+                if (structMode)
+                  structMode++;
 
                 indent++;
                 strAppendL(c_code, &lexer->token, 1);
@@ -120,7 +121,9 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
                 break;
             
             case '}':
-              structMode--;
+              if (structMode)
+                structMode--;
+                
               indent--;
 
               si_string_erase(c_code, si_string_len(*c_code) - 2, 2);
