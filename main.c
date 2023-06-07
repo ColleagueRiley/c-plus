@@ -1,3 +1,25 @@
+/*
+* Copyright (c) 2023 ColleagueRiley ColleagueRiley@gmail.com
+*
+* This software is provided 'as-is', without any express or implied
+* warranty.  In no event will the authors be held liable for any damages
+* arising from the use of this software.
+*
+* Permission is granted to anyone to use this software for any purpose,
+* including commercial applications, and to alter it and redistribute it
+* freely, subject to the following r estrictions:
+*
+* 1. The origin of this software must not be misrepresented; you must not
+* claim that you wrote the original software. If you use this software
+* in a product, an acknowledgment in the product documentation would be
+* appreciated but is not required.
+* 2. Altered source versions must be plainly marked as such, and must not be
+* misrepresented as being the original software.
+* 3. This notice may not be removed or altered from any source distribution.
+*
+*
+*/
+
 #define STB_C_LEXER_IMPLEMENTATION
 #define SI_IMPLEMENTATION
 
@@ -19,15 +41,30 @@ unsigned int indent = 0;
 2: inside struct definition
 */
 unsigned int structMode; 
+siString structName;
+bool typedefCheck = false;
 
 siString* print_token(stb_lexer *lexer, siString* c_code) {
   switch (lexer->token) {
     case CLEX_id        : 
-          if (si_strings_are_equal(lexer->string, "struct"))
-            structMode++;
-          
-          strAppend(c_code, lexer->string); 
-          break;
+              if (structMode == 1)
+                structName = si_string_make(lexer->string);
+              
+              if (si_strings_are_equal(lexer->string, "struct")) {
+                  structMode++;
+              
+                  if (!typedefCheck)
+                    strAppendL(c_code, "typedef ", 8);
+                }
+      
+              else if (si_strings_are_equal(lexer->string, "typedef"))
+                typedefCheck = true;
+              
+              else if (!structMode)
+                typedefCheck = false;
+      
+              strAppend(c_code, lexer->string); 
+              break;
     case CLEX_eq        : strAppendL(c_code, "==", 2); break;
     case CLEX_noteq     : strAppendL(c_code, "!=", 2); break;
     case CLEX_lesseq    : strAppendL(c_code, "<=", 2); break;
@@ -75,8 +112,7 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
         if (lexer->token >= 0 && lexer->token < 256) {
           switch(lexer->token) {
             case '{':
-                if (structMode == 1)
-                  structMode++;
+                structMode++;
 
                 indent++;
                 strAppendL(c_code, &lexer->token, 1);
@@ -84,29 +120,49 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
                 break;
             
             case '}':
-              if (structMode == 2)
-                  structMode--;
-
+              structMode--;
               indent--;
 
               si_string_erase(c_code, si_string_len(*c_code) - 2, 2);
               strAppendL(c_code, &lexer->token, 1);
+            
+
+              if (structMode == 1 && typedefCheck)
+                strAppendL(c_code, " ", 1);
+
               strAppendL(c_code, "\n\n", 2);
               break;
 
             case ';':
-                structMode = 0;
-                
-                if (((*c_code)[si_string_len(*c_code) - 2] == '\n'))
+                if (structMode == 1 && typedefCheck) {
+                  si_string_erase(c_code, si_string_len(*c_code) - si_string_len(structName) - 3, 2);
+                  si_string_erase(c_code,  si_string_len(*c_code) - 1, 1);
+                }
+
+                else if (((*c_code)[si_string_len(*c_code) - 2] == '\n'))
                   si_string_erase(c_code, si_string_len(*c_code) - 2, 2);
                 else
                   si_string_erase(c_code, si_string_len(*c_code) - 1, 1);
-                  
+
+                if (structMode == 1 && !typedefCheck) {
+                  strAppendL(c_code, " ", 1);
+                  strAppendL(c_code, structName, si_string_len(structName));
+
+                  typedefCheck = false;
+                }
 
                 strAppendL(c_code, &lexer->token, 1);
 
                 if (((*c_code)[si_string_len(*c_code) - 3] == '\n')) strAppendL(c_code, "\n", 1);
+                
                 strAppendL(c_code, "\n", 1);
+                
+                if (structMode == 1) {
+                  strAppendL(c_code, "\n", 1);
+                  si_string_free(structName);  
+
+                  structMode = 0;
+                }
                 break;
 
             case '.':
@@ -155,7 +211,7 @@ int main(int argc, char **argv) {
   si_file_close(f);
 
   stb_lexer lex;
-  siString c_code = si_string_make("");
+  siString c_code = si_string_make("#define __cplus\n\n");
   stb_c_lexer_init(&lex, text, text + f.size, malloc(0x10000), 0x10000);
 
   while (stb_c_lexer_get_token(&lex)) {
