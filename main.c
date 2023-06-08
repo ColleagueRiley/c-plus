@@ -33,6 +33,35 @@
 #define strAppend si_string_append
 #define strAppendL si_string_append_len
 
+char* int_to_string(int num) {
+  /* get how many places are in the number */
+  int i, count = 10;
+  for (i = 1; !(abs(num) < count); i++, count *= 10);
+
+  char* intStr = malloc(sizeof(char) * i);
+  sprintf(intStr, "%i", num);
+
+  return intStr;
+}
+
+char* double_to_string(double num) {
+  /* get how many places are in the number */
+  int i, i2, count = 10;
+  
+  for (i = 1; !(abs(num) < count); i++, count *= 10);
+
+  /* get how many decimal places there are */
+  char* buff = malloc(sizeof(char) * 20);
+  sprintf(buff, "%f", num - (int)num);
+
+  i2 = strlen(buff) - 1;
+
+  char* intStr = malloc(sizeof(char) * (i + i2));
+  sprintf(intStr, "%f", num);
+
+  return intStr;
+}
+
 
 unsigned int indent = 0;
 
@@ -100,14 +129,17 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
           strAppendL(c_code, "'", 1); 
           strAppendL(c_code, lexer->string, lexer->string_len); 
           strAppendL(c_code, "'", 1); 
-    #if defined(STB__clex_int_as_double) && !defined(STB__CLEX_use_stdlib)
-    case CLEX_intlit    : strAppend(c_code, "#%g", lexer->real_number); break;
-    #else
-    case CLEX_intlit    : 
-      //strAppend(c_code, lexer->int_number); break;
-    #endif
-    case CLEX_floatlit  : 
-      //strAppend(c_code, lexer->real_number); break;
+    case CLEX_intlit:
+    case CLEX_floatlit: {
+      char* str =  (lexer->token == CLEX_floatlit) ? 
+                double_to_string(lexer->real_number) : 
+                int_to_string(lexer->int_number);
+
+      strAppend(c_code, str); 
+
+      free(str);      
+      break;
+    }
     default:
         if (lexer->token >= 0 && lexer->token < 256) {
           switch(lexer->token) {
