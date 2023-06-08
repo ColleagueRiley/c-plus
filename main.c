@@ -63,17 +63,19 @@ char* double_to_string(double num) {
 }
 
 
-unsigned int indent = 0;
+unsigned int indent = 0; /* level of indentation */
 
 /* 
 1: found struct (keyword)
 2: inside struct definition
 */
 unsigned int structMode; 
-siString structName;
-bool typedefCheck = false;
+siString structName; /* name of found struct */
+bool typedefCheck = false; /* if the found struct is in a typedef or not */
 
-siString* print_token(stb_lexer *lexer, siString* c_code) {
+siArray(siString) structFuncs; /* functions defined inside the struct */
+
+siString* handle_token(stb_lexer *lexer, siString* c_code) {
   switch (lexer->token) {
     case CLEX_id        : 
               if (structMode == 1)
@@ -207,12 +209,35 @@ siString* print_token(stb_lexer *lexer, siString* c_code) {
               strAppendL(c_code, &lexer->token, 1);
               break;
             
-            case ')':
-              
+            case '(':
+              if (structMode > 1) {
+                siString func = si_string_make("");
 
-              strAppendL(c_code, &lexer->token, 1);
+                while (lexer->token != ';' && lexer->token != '}') {
+                  stb_c_lexer_get_token(lexer);
+                  handle_token(lexer, &func);
+                }
+                
+                stb_c_lexer_get_token(lexer);
+                handle_token(lexer, &func);
+
+                siArray(siString) split = si_string_split(*c_code, " ");
+
+                si_string_erase(&func, 0, 1);
+                si_string_insert(&func, " (", 0);
+                si_string_insert(&func, split[si_array_len(split) - 2], 0);
+                si_string_insert(&func, " ", 0);
+                si_string_insert(&func, split[si_array_len(split) - 3], 0);
+
+                si_array_free(split);
+
+                printf("%s\n", func);
+              }
+
+              else 
+                strAppendL(c_code, &lexer->token, 1);
               break;
-
+            
             case '=':
               structMode = false;
 
@@ -255,7 +280,7 @@ int main(int argc, char **argv) {
           break;
       }
 
-      print_token(&lex, &c_code);
+      handle_token(&lex, &c_code);
   }
 
   f = si_file_create("output.c");
