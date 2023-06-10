@@ -73,7 +73,7 @@ unsigned int structMode;
 siString structName; /* name of found struct */
 bool typedefCheck = false; /* if the found struct is in a typedef or not */
 
-siArray(siString) structFuncs; /* functions defined inside the struct */
+siArray(siString) structFuncs = NULL; /* functions defined inside the struct */
 
 siString* handle_token(stb_lexer *lexer, siString* c_code) {
   switch (lexer->token) {
@@ -198,6 +198,22 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                   strAppendL(c_code, "\n", 1);
                   si_string_free(structName);  
 
+                  int i, j;
+                  for (i = 0; i < si_array_len(structFuncs); i++) {
+                    
+                    bool next = false;
+                    for (j = 0; j < si_string_len(structFuncs[i]); j++) {
+                      if (next == false) {
+                        si_string_erase(&structFuncs[i], j, 2);
+                        next = true;
+                      }
+
+                      if (structFuncs[i][j] == '\n')
+                        next = false;
+                    }
+                    si_string_append(c_code, structFuncs[i]);
+                    si_string_append(c_code, "\n");
+                  }
                   structMode = 0;
                 }
                 break;
@@ -213,25 +229,48 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
               if (structMode > 1) {
                 siString func = si_string_make("");
 
-                while (lexer->token != ';' && lexer->token != '}') {
+                bool nb = false;
+                int j = 0;
+
+                si_string_append(&func, structName);
+                    
+                si_string_append_len(&func, " this*", 6);
+
+                stb_lexer lex = *lexer;
+                stb_c_lexer_get_token(&lex);
+
+                if (lex.token != ')')
+                  si_string_append_len(&func, ", ",  2);
+
+
+                while ((lexer->token != ';' || nb) && lexer->token != '}') {
                   stb_c_lexer_get_token(lexer);
                   handle_token(lexer, &func);
+
+                  if (!nb && lexer->token == '{') nb = true;
                 }
-                
-                stb_c_lexer_get_token(lexer);
-                handle_token(lexer, &func);
 
                 siArray(siString) split = si_string_split(*c_code, " ");
 
-                si_string_erase(&func, 0, 1);
-                si_string_insert(&func, " (", 0);
+                si_string_insert(&func, " (", -1);
+
                 si_string_insert(&func, split[si_array_len(split) - 2], 0);
+                si_string_insert(&func, "_", 0);
+                si_string_insert(&func, structName, 0);
+                si_string_insert(&func, "cplus_", 0);
                 si_string_insert(&func, " ", 0);
                 si_string_insert(&func, split[si_array_len(split) - 3], 0);
+                si_string_insert(&func, " ", 0);
 
-                si_array_free(split);
+                size_t eraseSize = strlen(split[si_array_len(split) - 2]) + strlen(split[si_array_len(split) - 3]);
+
+                si_string_erase(c_code, si_string_len(*c_code) - eraseSize - 2 - (indent * 2), eraseSize + 2 + (indent * 2));
 
                 printf("%s\n", func);
+
+                if (structFuncs == NULL)
+                  structFuncs = si_array_make_reserve(sizeof(siString), 1);
+                si_array_append(&structFuncs, func);
               }
 
               else 
