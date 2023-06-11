@@ -12,7 +12,7 @@ main-debug: $(SRCS)
 
 # windows being weird (mostly github's windows system)
 runWindows: 
-	.\cplus test.cp
+	cplus test.cp
 
 all:
 	@make main
