@@ -7,6 +7,9 @@ SRCS = main.c
 main: $(SRCS)
 	$(CC)  -g -lm $(SRCS) -o cplus
 
+main-clang: $(SRCS)
+	clang -g -lm $(SRCS) -o cplus
+
 main-debug: $(SRCS)
 	$(CC)  -g -lm $(SRCS) -DMEMWATCH -DMW_STDIO memwatch/memwatch.c -o cplus
 
