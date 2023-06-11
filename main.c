@@ -685,8 +685,6 @@ int main(int argc, char **argv) {
 
   si_string_append(&cmd, c_args);
 
-  printf("%s\n", cmd);
-
   if (!no_compile) {
     system(cmd);
     si_path_remove("output.c");
