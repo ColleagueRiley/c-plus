@@ -13,5 +13,5 @@ main-debug: $(SRCS) $(HEADERS)
 	$(CC) $(CFLAGS) $(SRCS) -DMEMWATCH -DMW_STDIO memwatch/memwatch.c o cplus
 
 all:
-	@make main-debug
+	@make main
 	./cplus test.cp
