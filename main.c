@@ -20,6 +20,8 @@
 *
 */
 
+#include "memwatch/memwatch.h"
+
 #define STB_C_LEXER_IMPLEMENTATION
 #define SI_IMPLEMENTATION
 
@@ -32,6 +34,11 @@
 /* shortened function names */
 #define strAppend si_string_append
 #define strAppendL si_string_append_len
+
+/* text macros */
+#define RESET   "\033[0m"
+#define RED     "\033[31m"      /* Red */
+#define BOLD "\033[1m"
 
 char* int_to_string(int num) {
   /* get how many places are in the number */
@@ -75,16 +82,25 @@ bool typedefCheck = false; /* if the found struct is in a typedef or not */
 
 siArray(siString) structFuncs = NULL; /* functions defined inside the struct */
 
+typedef struct object { 
+    char* varName;
+    char* varType; 
+    unsigned int indent; 
+} object;
+
+siArray(siString) classes;
+siArray(object) objs;
+
 siString* handle_token(stb_lexer *lexer, siString* c_code) {
   switch (lexer->token) {
-    case CLEX_id        : 
+    case CLEX_id        :   
               if (structMode == 1)
                 structName = si_string_make(lexer->string);
               
               if (si_strings_are_equal(lexer->string, "struct")) {
                   structMode++;
               
-                  if (!typedefCheck)
+                                if (!typedefCheck)
                     strAppendL(c_code, "typedef ", 8);
               }
       
@@ -93,7 +109,18 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
               
               else if (!structMode)
                 typedefCheck = false;
-      
+
+              int i;
+              for (i = 0; i < si_array_len(classes); i++)
+                if (si_strings_are_equal(classes[0], lexer->string)) {
+                  si_array_append(&objs, NULL);
+
+                  object o = {"", classes[i], indent};
+                  o.varName = strdup(lexer->string);
+
+                  objs[si_array_len(objs) - 1] = o;
+                }
+
               strAppend(c_code, lexer->string); 
               break;
     case CLEX_eq        : strAppendL(c_code, "==", 2); break;
@@ -196,7 +223,8 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                 
                 if (structMode == 1) {
                   strAppendL(c_code, "\n", 1);
-                  si_string_free(structName);  
+
+                  si_array_append(&classes, structName);
 
                   int i, j;
                   for (i = 0; i < si_array_len(structFuncs); i++) {
@@ -213,18 +241,81 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                     }
                     si_string_append(c_code, structFuncs[i]);
                     si_string_append(c_code, "\n");
+
+                    si_string_free(structFuncs[i]);
                   }
+
+                  si_array_free(structFuncs);
                   structMode = 0;
                 }
                 break;
 
-            case '.':
+            case '.': {
               if (si_string_back(*c_code) == ' ')
                 si_string_erase(c_code, si_string_len(*c_code) - 1, 1);
               
+              stb_lexer lex;
+              char* funcName;
+
+              for (lex = *lexer; lex.token != ';' && lex.token != '('; stb_c_lexer_get_token(&lex)) 
+                funcName = lex.string;
+
+
+              if (lex.token == '(') {
+                siString func = si_string_make("cplus_"); 
+
+                siString objectName = si_string_make("");
+
+                int i;
+                for (i = si_string_len(*c_code) - 1; i >= 0; i--) {
+                  if ((*c_code)[i] == ' ') break;
+                  si_string_push(&objectName, (*c_code)[i]);
+                }
+
+                si_string_reverse(&objectName);
+              
+                int xx = 0; 
+
+                for (i = 0; i < si_array_len(objs); i++) {
+                  if (si_strings_are_equal(objs[i].varName, objectName)) 
+                    if (objs[i].indent <= indent && 
+                        objs[i].indent > objs[xx].indent)
+                      xx = i;
+                }
+
+                si_string_append(&func, objs[xx].varType);
+                si_string_push(&func, '_');
+
+                si_string_append(&func, funcName);
+
+                si_string_append_len(&func, "(&", 2);
+                si_string_append(&func, objectName);
+
+                stb_c_lexer_get_token(&lex);
+                if (lex.token != ')')
+                  si_string_append_len(&func, ", ", 2);
+
+                for (i = 0; i < 3; i++)
+                  stb_c_lexer_get_token(lexer);
+
+                for (lexer; lexer->token != ';'; stb_c_lexer_get_token(lexer))
+                  handle_token(lexer, &func);
+
+                si_string_erase(&func, si_string_len(func) - 1, 1);
+                si_string_push(&func, ';');
+
+                si_string_erase(c_code, si_string_len(*c_code) - si_string_len(objectName), si_string_len(objectName));
+                si_string_append(c_code, func);
+                si_string_push(c_code, '\n');
+
+                si_string_free(func);
+                si_string_free(objectName);
+              }
+
               strAppendL(c_code, &lexer->token, 1);
               break;
-            
+            }
+
             case '(':
               if (structMode > 1) {
                 siString func = si_string_make("");
@@ -234,7 +325,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
                 si_string_append(&func, structName);
                     
-                si_string_append_len(&func, " this*", 6);
+                si_string_append_len(&func, "* this", 6);
 
                 stb_lexer lex = *lexer;
                 stb_c_lexer_get_token(&lex);
@@ -264,12 +355,16 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
                 size_t eraseSize = strlen(split[si_array_len(split) - 2]) + strlen(split[si_array_len(split) - 3]);
 
-                si_string_erase(c_code, si_string_len(*c_code) - eraseSize - 2 - (indent * 2), eraseSize + 2 + (indent * 2));
+                for (i = 0; i < si_array_len(split); i++)
+                  si_string_free(split[i]);
 
-                printf("%s\n", func);
+                si_array_free(split);
+
+                si_string_erase(c_code, si_string_len(*c_code) - eraseSize - 2 - (indent * 2), eraseSize + 2 + (indent * 2));
 
                 if (structFuncs == NULL)
                   structFuncs = si_array_make_reserve(sizeof(siString), 1);
+                  
                 si_array_append(&structFuncs, func);
               }
 
@@ -282,7 +377,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
               strAppendL(c_code, &lexer->token, 1);
               break;
-
+            
             default:
               strAppendL(c_code, &lexer->token, 1);
               break;
@@ -305,13 +400,46 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 }
 
 int main(int argc, char **argv) {
+  if (argc == 1) {
+    char* error = RED "fatal error" RESET;
+
+    printf("%s%s%s: %s: no input files\ncompilation terminated.\n", 
+                BOLD, argv[0], RESET, 
+                error);
+
+    return 0;
+  }
+
+  bool no_compile = false;
+  char* outputName = "output.c";
+  char* compiler = "gcc";
+
+  int i;
+  for (i = 1; i < argc; i++) {
+    if (argv[i][0] == '-') {
+      if (si_strings_are_equal("-cc", argv[i]) && no_compile)
+        compiler = argv[i++];
+
+      if (si_strings_are_equal("-no-compile", argv[i]))
+        no_compile == true;
+      
+      if (si_strings_are_equal("-o", argv[i]) && no_compile)
+        outputName = argv[i++];
+    }
+  }
+
   siFile f = si_file_open("test.cp");
   siString text = si_file_read(f);
   si_file_close(f);
 
   stb_lexer lex;
   siString c_code = si_string_make("#define __cplus\n\n");
-  stb_c_lexer_init(&lex, text, text + f.size, malloc(0x10000), 0x10000);
+  
+  char* stringStore = malloc(0x10000);
+  stb_c_lexer_init(&lex, text, text + f.size, stringStore, 0x10000);
+
+  classes = si_array_make_reserve(sizeof(siString), 0);
+  objs = si_array_make_reserve(sizeof(object), 0);
 
   while (stb_c_lexer_get_token(&lex)) {
       if (lex.token == CLEX_parse_error) {
@@ -322,9 +450,26 @@ int main(int argc, char **argv) {
       handle_token(&lex, &c_code);
   }
 
-  f = si_file_create("output.c");
+  f = si_file_create(outputName);
   si_file_write(&f, c_code);
   si_file_close(f);
 
+
+  for (int i = 0; i < si_array_len(classes); i++) 
+    si_string_free(classes[i]);
+
+
+  si_array_free(classes);
+  si_array_free(objs);
+
   si_string_free(c_code);
+  free(stringStore);
+
+  siString cmd = si_string_make(compiler);
+  si_string_push(&cmd, ' ');
+  si_string_append(&cmd, outputName);
+
+  system(cmd);
+
+  si_string_free(cmd);
 }
