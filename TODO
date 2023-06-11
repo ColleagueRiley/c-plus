@@ -18,6 +18,9 @@
 
 operator overloading
 
+- handle pre-processors
+- header files
+
 (maybe)
 string switches
 
