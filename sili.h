@@ -1768,12 +1768,15 @@ siString si_array_to_sistring(siArray(char*) array, cstring separator) {
 	}
 
 	siString result = si_string_make_reserve(total_size);
-	foreach (str, array) {
-		if (separator != nil && str != si_array_back(array).ptr) {
-			si_string_join(&result, separator, *str);
-		}
-		else {
-			si_string_append(&result, *str);
+	
+	{
+		foreach (str, array) {
+			if (separator != nil && str != si_array_back(array).ptr) {
+				si_string_join(&result, separator, *str);
+			}
+			else {
+				si_string_append(&result, *str);
+			}
 		}
 	}
 
