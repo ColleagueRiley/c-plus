@@ -20,7 +20,9 @@
 *
 */
 
+#ifdef MEMWATCH
 #include "memwatch/memwatch.h"
+#pragma endregion
 
 #define STB_C_LEXER_IMPLEMENTATION
 #define SI_IMPLEMENTATION
