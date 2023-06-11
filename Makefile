@@ -3,13 +3,12 @@ all: main
 CC = gcc
 override CFLAGS += -g -Wno-everything -lm
 
-SRCS = $(shell find . -name '.ccls-cache' -type d -prune -o -type f -name 'main.c' -print)
-HEADERS = $(shell find . -name '.ccls-cache' -type d -prune -o -type f -name '*.h' -print)
+SRCS = main.c
 
-main: $(SRCS) $(HEADERS)
+main: $(SRCS)
 	$(CC) $(CFLAGS) $(SRCS) -o cplus
 
-main-debug: $(SRCS) $(HEADERS)
+main-debug: $(SRCS)
 	$(CC) $(CFLAGS) $(SRCS) -DMEMWATCH -DMW_STDIO memwatch/memwatch.c -o cplus
 
 all:

@@ -398,11 +398,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 }
 
 
-#ifdef _WIN32
-int WinMain(int argc, char **argv) { /* windows requires this for some reason */
-#else
 int main(int argc, char **argv) {
-#endif
   if (argc == 1) {
     char* error = RED "fatal error" RESET;
 
