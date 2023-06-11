@@ -5,6 +5,7 @@ It attemps to merge the cleanness low-levelness, and over all efficiency of c wi
 
 Although C-Plus supports objects [via structures with functions] it does not support OOP directly and does not plan to ever support OOP directly.
 
+Build status (linux) :
 ![cplus workflow](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp.yml/badge.svg)
 
 # Supported Features
