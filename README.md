@@ -14,12 +14,48 @@ Build status (windows) :
 Build status (macOS) :
 ![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp-macos.yml/badge.svg)
 
+# building
+    to build the cplus compiler, simply run `make`
+
+    you can also very easily compile cplus by hand by running
+    
+    `[your c compiler (ex. gcc)] main.c -o cplus`
+
+# installing
+    to install cplus, simply move cplus into your bin directory, on unix you can do this just by running `sudo make install` or `sudo mv cplus /usr/bin`
+
+    to install cplus on windows however, you must move cplus into the same directory that your c-compiler exectuable file is in
 
 # Supported Features
 - structs can be used normally without typedef
+- structs can be used as a class, i.e. the usr can define functions inside structs
+
+externally defined functions use the same synstax as c++
+
+ex.
+```cpp
+void type::func(){
+
+}
+```
+
+- namespace, namespace syntax is slightly different than c++'s in that it uses `.` [optionally] instead of `::`
+
+ex.
+
+```cpp
+namespace ns {
+    int a;
+}
+
+int main() {
+    ns.a = 5;
+    ns::a = 5; /* this still works but it's ugly :)*/
+}
+```
 
 # Future Features
-- object functions
+- void*/casting object functions
 - load object using data (eg. char*)
 - opperator overloading
 
