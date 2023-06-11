@@ -191,7 +191,9 @@ extern "C" {
 	#include <pthread.h>
 
 	#include <sys/stat.h>
+	#ifndef SI_SYSTEM_OSX
 	#include <sys/sendfile.h>
+	#endif
 	#include <sys/fcntl.h>
 
 	#include <stdio.h>
