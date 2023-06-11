@@ -452,8 +452,7 @@ int main(int argc, char **argv) {
   si_file_write(&f, c_code);
   si_file_close(f);
 
-
-  for (int i = 0; i < si_array_len(classes); i++) 
+  for (i = 0; i < si_array_len(classes); i++) 
     si_string_free(classes[i]);
 
 
