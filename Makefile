@@ -10,9 +10,8 @@ main: $(SRCS)
 main-debug: $(SRCS)
 	$(CC)  -g -lm $(SRCS) -DMEMWATCH -DMW_STDIO memwatch/memwatch.c -o cplus
 
-# windows being weird (mostly github's windows system)
 runWindows: 
-	cplus test.cp
+	./cplus.exe test.cp
 
 all:
 	@make main
