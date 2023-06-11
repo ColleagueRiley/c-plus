@@ -108,8 +108,8 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
               if (structMode == 1) {
                 structName = si_string_make(lexer->string);
-              
-                if (si_string_len(namespace)) {
+
+                if (si_strings_are_equal(namespace, "")) {
                   si_string_insert(&structName, namespace, -1);
                   si_string_insert(&structName, "_", si_string_len(namespace) - 1);
                 }
