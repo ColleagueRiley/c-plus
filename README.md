@@ -11,6 +11,10 @@ Build status (linux) :
 Build status (windows) :
 ![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp-windows.yml/badge.svg)
 
+Build status (macOS) :
+![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp-macos.yml/badge.svg)
+
+
 # Supported Features
 - structs can be used normally without typedef
 
