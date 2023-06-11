@@ -5,6 +5,8 @@ It attemps to merge the cleanness low-levelness, and over all efficiency of c wi
 
 Although C-Plus supports objects [via structures with functions] it does not support OOP directly and does not plan to ever support OOP directly.
 
+![cplus workflow](https://github.com/github/docs/actions/workflows/main.yml/badge.svg)
+
 # Supported Features
 - structs can be used normally without typedef
 
