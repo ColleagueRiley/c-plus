@@ -10,7 +10,7 @@ main: $(SRCS) $(HEADERS)
 	$(CC) $(CFLAGS) $(SRCS) -o cplus
 
 main-debug: $(SRCS) $(HEADERS)
-	$(CC) $(CFLAGS) $(SRCS) -DMEMWATCH -DMW_STDIO memwatch/memwatch.c o cplus
+	$(CC) $(CFLAGS) $(SRCS) -DMEMWATCH -DMW_STDIO memwatch/memwatch.c -o cplus
 
 all:
 	@make main
