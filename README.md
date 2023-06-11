@@ -8,6 +8,9 @@ Although C-Plus supports objects [via structures with functions] it does not sup
 Build status (linux) :
 ![cplus workflow](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp.yml/badge.svg)
 
+Build status (windows) :
+![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp-windows.yml/badge.svg)
+
 # Supported Features
 - structs can be used normally without typedef
 
