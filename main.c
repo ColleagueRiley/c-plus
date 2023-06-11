@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
         compiler = argv[i++];
 
       if (si_strings_are_equal("-no-compile", argv[i]))
-        no_compile == true;
+        no_compile = true;
       
       if (si_strings_are_equal("-o", argv[i]) && no_compile)
         outputName = argv[i++];
