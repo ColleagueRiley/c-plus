@@ -13,5 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: make
-      run: make
+    - name: make-build
+      run: make main
+    - name: make-run
+      run: make runWindows
