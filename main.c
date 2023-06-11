@@ -131,7 +131,72 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
     case CLEX_shr       : strAppendL(c_code, ">>", 2); break;
     case CLEX_plusplus  : strAppendL(c_code, "++", 2); break;
     case CLEX_minusminus: strAppendL(c_code, "--", 2); break;
-    case CLEX_arrow     : strAppendL(c_code, "->", 2); break;
+    case CLEX_arrow     : {
+        stb_lexer lex;
+        char* funcName;
+
+        for (lex = *lexer; lex.token != ';' && lex.token != '('; stb_c_lexer_get_token(&lex)) 
+          funcName = lex.string;
+
+
+        if (lex.token == '(') {
+          siString func = si_string_make("cplus_"); 
+
+          siString objectName = si_string_make("");
+
+          int i;
+          for (i = si_string_len(*c_code) - 2; i >= 0; i--) {
+            if ((*c_code)[i] == ' ') break;
+            si_string_push(&objectName, (*c_code)[i]);
+          }
+
+          si_string_reverse(&objectName);
+        
+          int xx = 0; 
+
+          for (i = 0; i < si_array_len(objs); i++) {
+            if (si_strings_are_equal(objs[i].varName, objectName)) {
+              printf("hi\n");
+              if (objs[i].indent <= indent && 
+                  objs[i].indent > objs[xx].indent)
+                xx = i;
+            }
+          }
+
+          si_string_append(&func, objs[xx].varType);
+          si_string_push(&func, '_');
+
+          si_string_append(&func, funcName);
+
+          si_string_push(&func, '(');
+          si_string_append(&func, objectName);
+
+          stb_c_lexer_get_token(&lex);
+          if (lex.token != ')')
+            si_string_append_len(&func, ", ", 2);
+
+          for (i = 0; i < 3; i++)
+            stb_c_lexer_get_token(lexer);
+
+          for (lexer; lexer->token != ';'; stb_c_lexer_get_token(lexer))
+            handle_token(lexer, &func);
+
+          si_string_erase(&func, si_string_len(func) - 1, 1);
+          si_string_push(&func, ';');
+
+          si_string_erase(c_code, si_string_len(*c_code) - si_string_len(objectName), si_string_len(objectName));
+          si_string_erase(c_code, si_string_len(*c_code) - 1, 1);
+          si_string_append(c_code, func);
+          si_string_push(c_code, '\n');
+
+          si_string_free(func);
+          si_string_free(objectName);
+        } 
+
+        else
+          strAppendL(c_code, "->", 2); 
+        break;
+    }
     case CLEX_andeq     : strAppendL(c_code, "&=", 2); break;
     case CLEX_oreq      : strAppendL(c_code, "|=", 2); break;
     case CLEX_xoreq     : strAppendL(c_code, "^=", 2); break;
