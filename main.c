@@ -100,8 +100,8 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
               if (si_strings_are_equal(lexer->string, "namespace")) {
                 stb_c_lexer_get_token(lexer);
 
-                namespace = si_string_make(lexer->string);
-                
+                si_string_set(&namespace, lexer->string);
+
                 si_array_append(&namespaces, namespace);
                 break;
               }
@@ -109,7 +109,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
               if (structMode == 1) {
                 structName = si_string_make(lexer->string);
 
-                if (si_strings_are_equal(namespace, "")) {
+                if (!si_string_len(namespace)) {
                   si_string_insert(&structName, namespace, -1);
                   si_string_insert(&structName, "_", si_string_len(namespace) - 1);
                 }
@@ -275,7 +275,8 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
               if (si_string_len(namespace) && !indent) {
                  strAppendL(c_code, "\n", 1);
-                namespace = "";
+                
+                si_string_set(&namespace, "");
                 break;
               }
 
@@ -329,7 +330,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                   structMode = 0;
                 }
 
-                else if (!si_strings_are_equal(namespace, "") && si_string_len(namespace) && indent == 1) {
+                else if (si_string_len(namespace) && indent == 1) {
                   int i;
                   for (i = si_string_len(*c_code) - 2; i >= 0; i--) {
                     if ((*c_code)[i] == ' ' && (*c_code)[i - 1] == '=' && i - 2 >= 0)
@@ -484,7 +485,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                 break;
               }
 
-              else if (!si_strings_are_equal(namespace, "") && si_string_len(namespace)) {
+              else if (si_string_len(namespace)) {
                 int i;
                 for (i = si_string_len(*c_code) - 2; i >= 0 && (*c_code)[i] != ' '; i--);
 
@@ -655,6 +656,8 @@ int main(int argc, char **argv) {
   structFuncs = si_array_make_reserve(sizeof(siString), 0);
   namespaces = si_array_make_reserve(sizeof(char*), 0);
 
+  namespace = si_string_make("");
+
   while (stb_c_lexer_get_token(&lex)) {
       if (lex.token == CLEX_parse_error) {
           printf("\n<<<PARSE ERROR>>>\n");
@@ -694,4 +697,5 @@ int main(int argc, char **argv) {
 
   si_string_free(c_args);
   si_array_free(files);
+  si_string_free(namespace);
 }
