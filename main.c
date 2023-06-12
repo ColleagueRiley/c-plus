@@ -130,7 +130,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
               int i;
               for (i = 0; i < si_array_len(classes); i++) 
-                if (si_strings_are_equal(classes[0], lexer->string)) {
+                if (si_strings_are_equal(classes[i], lexer->string)) {
                   si_array_append(&objs, NULL);
 
                   object o = {"", classes[i], indent};
@@ -143,6 +143,8 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                   objs[si_array_len(objs) - 1] = o;
 
                   lexer->string = classes[i];
+                
+                  break;
                 }
 
               strAppend(c_code, lexer->string); 
@@ -588,16 +590,16 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
       strAppendL(c_code, " ", 1);
 }
 
-
+#define textRed(text) RED, text, RESET
+#define textBold(text) BOLD, text, RESET
+  
 int main(int argc, char **argv) {
   if (argc == 1) {
     CPLUS_NO_FILE:
 
-    char* error = RED "fatal error" RESET;
-
-    printf("%s%s%s: %s: no input files\ncompilation terminated.\n", 
-                BOLD, argv[0], RESET, 
-                error);
+    printf("%s%s%s: %s%s%s: no input files\ncompilation terminated.\n", 
+                textBold(argv[0]), 
+                textRed("fatal error"));
 
     return 0;
   }
