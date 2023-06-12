@@ -109,7 +109,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
               if (structMode == 1) {
                 structName = si_string_make(lexer->string);
 
-                if (!si_string_len(namespace)) {
+                if (si_string_len(namespace)) {
                   si_string_insert(&structName, namespace, -1);
                   si_string_insert(&structName, "_", si_string_len(namespace) - 1);
                 }
@@ -129,14 +129,20 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                 typedefCheck = false;
 
               int i;
-              for (i = 0; i < si_array_len(classes); i++)
+              for (i = 0; i < si_array_len(classes); i++) 
                 if (si_strings_are_equal(classes[0], lexer->string)) {
                   si_array_append(&objs, NULL);
 
                   object o = {"", classes[i], indent};
-                  o.varName = strdup(lexer->string);
+                  
+                  stb_lexer lex = *(const stb_lexer*)lexer;
+                  stb_c_lexer_get_token(&lex);
+
+                  o.varName = strdup(lex.string);
 
                   objs[si_array_len(objs) - 1] = o;
+
+                  lexer->string = classes[i];
                 }
 
               strAppend(c_code, lexer->string); 
@@ -326,7 +332,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                     si_string_append(c_code, "\n");
                   }
 
-                  
+                  SI_ARRAY_HEADER(structFuncs)->len = 0;
                   structMode = 0;
                 }
 
@@ -371,10 +377,10 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
               bool found = false; 
               int xx = 0;
-
+              
               for (i = 0; i < si_array_len(objs); i++) {
-                if (si_strings_are_equal(objs[i].varName, objectName)) 
-                  if (objs[i].indent <= indent && objs[i].indent > objs[xx].indent) {
+                if (si_strings_are_equal(objs[i].varName, objectName))
+                  if (objs[i].indent <= indent && (!found || objs[i].indent > objs[xx].indent)) {
                       xx = i;
                       found = true;
                   }
