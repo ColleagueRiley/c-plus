@@ -130,11 +130,8 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
 
               int i;
-              for (i = 0; i < si_array_len(classes); i++) {
-                si_string_append(&str, lexer->string);
-                printf("%s\n", str);
-
-                if (si_strings_are_equal(classes[i], str)) {
+              for (i = 0; i < si_array_len(classes); i++) 
+                if (si_strings_are_equal(classes[i], lexer->string)) {
                   si_array_append(&objs, NULL);
 
                   object o = {"", classes[i], indent};
