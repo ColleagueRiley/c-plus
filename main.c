@@ -38,17 +38,6 @@
 #define RED     "\033[31m"      /* Red */
 #define BOLD "\033[1m"
 
-char* int_to_string(int num) {
-  /* get how many places are in the number */
-  int i, count = 10;
-  for (i = 1; !(abs(num) < count); i++, count *= 10);
-
-  char* intStr = malloc(sizeof(char) * i);
-  sprintf(intStr, "%i", num);
-
-  return intStr;
-}
-
 char* double_to_string(double num) {
   /* get how many places are in the number */
   int i, i2, count = 10;
@@ -78,21 +67,19 @@ unsigned int structMode;
 siString structName; /* name of found struct */
 bool typedefCheck = false; /* if the found struct is in a typedef or not */
 
-siString namespace;
-
 siArray(siString) structFuncs = NULL; /* functions defined inside the struct */
 
 typedef struct object { 
-    char* varName;
-    char* varType; 
-    unsigned int indent; 
+    char* varName; /* name of the object */
+    char* varType; /* the var type (the class of the object)  */
+    unsigned int indent; /* the indent level of the define (to get the scope) */
 } object;
 
-siArray(siString) classes;
-siArray(object) objs;
+siArray(siString) classes; /* array of all the classes */
+siArray(object) objs; /* array of all the objects, stored as `object` structs */
 
-
-siArray(char*) namespaces;
+siString namespace; /* string of the current namespace (if we're in an namespace) */
+siArray(siString) namespaces; /* list of all the saved namespaces */
 
 siString* handle_token(stb_lexer *lexer, siString* c_code) {
   switch (lexer->token) {
@@ -103,6 +90,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                 si_string_set(&namespace, lexer->string);
 
                 si_array_append(&namespaces, namespace);
+                
                 break;
               }
 
@@ -128,9 +116,25 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
               else if (!structMode)
                 typedefCheck = false;
 
+              
+              siString str = si_string_make("");
+            
+              if (si_string_back(*c_code) == '_') {
+                printf("hi\n");
+                int i;
+                for (i = si_string_len(*c_code) - 1; i >= 0; i--)
+                  si_string_append(&str, (*c_code)[i]);
+
+                si_string_reverse(&str);
+              }
+
+
               int i;
-              for (i = 0; i < si_array_len(classes); i++) 
-                if (si_strings_are_equal(classes[0], lexer->string)) {
+              for (i = 0; i < si_array_len(classes); i++) {
+                si_string_append(&str, lexer->string);
+                printf("%s\n", str);
+
+                if (si_strings_are_equal(classes[i], str)) {
                   si_array_append(&objs, NULL);
 
                   object o = {"", classes[i], indent};
@@ -143,7 +147,12 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
                   objs[si_array_len(objs) - 1] = o;
 
                   lexer->string = classes[i];
+                
+                  break;
                 }
+              }
+
+              si_string_free(str);
 
               strAppend(c_code, lexer->string); 
               break;
@@ -250,7 +259,7 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
     case CLEX_floatlit: {
       char* str =  (lexer->token == CLEX_floatlit) ? 
                 double_to_string(lexer->real_number) : 
-                int_to_string(lexer->int_number);
+                si_i64_to_cstr(lexer->int_number);
 
       strAppend(c_code, str); 
 
@@ -377,8 +386,8 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
 
               bool found = false; 
               int xx = 0;
-              
-              for (i = 0; i < si_array_len(objs); i++) {
+
+              for (i = 0; i < si_array_len(objs); i++) { 
                 if (si_strings_are_equal(objs[i].varName, objectName))
                   if (objs[i].indent <= indent && (!found || objs[i].indent > objs[xx].indent)) {
                       xx = i;
@@ -418,7 +427,6 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
               }
 
               else {
-                
                 int i;
                 bool found = false;
 
@@ -588,16 +596,16 @@ siString* handle_token(stb_lexer *lexer, siString* c_code) {
       strAppendL(c_code, " ", 1);
 }
 
-
+#define textRed(text) RED, text, RESET
+#define textBold(text) BOLD, text, RESET
+  
 int main(int argc, char **argv) {
   if (argc == 1) {
     CPLUS_NO_FILE:
 
-    char* error = RED "fatal error" RESET;
-
-    printf("%s%s%s: %s: no input files\ncompilation terminated.\n", 
-                BOLD, argv[0], RESET, 
-                error);
+    printf("%s%s%s: %s%s%s: no input files\ncompilation terminated.\n", 
+                textBold(argv[0]), 
+                textRed("fatal error"));
 
     return 0;
   }
@@ -660,7 +668,7 @@ int main(int argc, char **argv) {
   classes = si_array_make_reserve(sizeof(siString), 0);
   objs = si_array_make_reserve(sizeof(object), 0);
   structFuncs = si_array_make_reserve(sizeof(siString), 0);
-  namespaces = si_array_make_reserve(sizeof(char*), 0);
+  namespaces = si_array_make_reserve(sizeof(siString), 0);
 
   namespace = si_string_make("");
 
@@ -677,13 +685,7 @@ int main(int argc, char **argv) {
   si_file_write(&f, c_code);
   si_file_close(f);
 
-  for (i = 0; i < si_array_len(classes); i++) 
-    si_string_free(classes[i]);
-
-
   si_array_free(classes);
-  si_array_free(objs);
-  si_array_free(namespaces);
 
   si_string_free(c_code);
   free(stringStore);
@@ -704,4 +706,7 @@ int main(int argc, char **argv) {
   si_string_free(c_args);
   si_array_free(files);
   si_string_free(namespace);
+
+  if (si_array_len(namespaces))
+    si_array_free(namespaces);
 }
