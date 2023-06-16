@@ -1,3 +1,8 @@
+- bugs
+- multi namespace
+- struct in a namespace v
+- multi structs v
+- namespace '.'
 
 - object functions
     replace object.function(args) with _cplus_class_function(object, args);
@@ -24,4 +29,10 @@ operator overloading
 (maybe)
 string switches
 
+- multi argument system 
+
+{int, int} func -> func(int&, int&)
+
 for in loop 
+
+- ADD COMMENTS
