@@ -650,56 +650,58 @@ int main(int argc, char **argv) {
   char *compiler = "gcc"; /* c compiler to use */
 
   
-  siString c_args = si_string_make("");
+  siString c_args = si_string_make(""); /* args for the c compiler */
 
-  siArray(char *) files = si_array_make_reserve(sizeof(char *), 0);
+  siArray(char *) files = si_array_make_reserve(sizeof(char *), 0); /* cplus files to compile */
 
   int i;
-  for (i = 1; i < argc; i++) {
-    if (argv[i][0] == '-') {
-      if (si_strings_are_equal("-cc", argv[i]) && no_compile)
+  for (i = 1; i < argc; i++) { /* loop through the args */
+    if (argv[i][0] == '-') { /* if the first char is a - check for args */
+      if (si_strings_are_equal("-cc", argv[i]) && no_compile) /* arg to set the compiler */
         compiler = argv[i++];
 
-      else if (si_strings_are_equal("-no-compile", argv[i]))
+      else if (si_strings_are_equal("-no-compile", argv[i])) /* rag to turn on no compile */
         no_compile = true;
 
-      else if (si_strings_are_equal("-o", argv[i]) && no_compile)
+      else if (si_strings_are_equal("-o", argv[i]) && no_compile) /* arg to set the output file [only needed if no_compile is on, otherwise it's a c-arg] */
         outputName = argv[i++];
 
-      else {
+      else { /* else add it to c args*/
         si_string_push(&c_args, ' ');
         si_string_append(&c_args, argv[i]);
       }
     }
 
-    else if (!si_string_len(c_args)) {
-      si_array_append(&files, argv[i]);
-      if (!si_path_exists(argv[i])) {
-        printf("No such file or directory \"%s\"\n", argv[i]);
+    else if (!si_string_len(c_args)) { /* if c args aren't being collected */
+      si_array_append(&files, argv[i]); /* add the arg to files */
+
+      if (!si_path_exists(argv[i])) { /* check if the file exists */
+        printf("No such file or directory \"%s\"\n", argv[i]); /* send an error if it doesn't exist */
 
         exit(1);
       }
     }
 
-    else if (si_string_len(c_args)) {
+    else if (si_string_len(c_args)) { /* else, if it's collecting c args, add it to the c args [if it wasn't already collected] */
       si_string_push(&c_args, ' ');
       si_string_append(&c_args, argv[i]);
     }
   }
 
-  if (!si_array_len(files))
+  if (!si_array_len(files)) /* if there are no files collected, go to no files error */
     goto CPLUS_NO_FILE;
 
-  siFile f = si_file_open(files[0]);
+  siFile f = si_file_open(files[0]); /* open and read the first file into `text` */
   siString text = si_file_read(f);
-  si_file_close(f);
+  si_file_close(f); /* close the file because it's not reuiqred anymore */
 
   stb_lexer lex;
-  siString c_code = si_string_make("#define __cplus\n\n");
+  siString c_code = si_string_make("#define __cplus__\n\n"); /* add cplus macro */
 
-  char *stringStore = malloc(0x10000);
-  stb_c_lexer_init(&lex, text, text + f.size, stringStore, 0x10000);
+  char *stringStore = malloc(0x10000); /* for string storage */
+  stb_c_lexer_init(&lex, text, text + f.size, stringStore, 0x10000); /* init the c lexer for stb */
 
+  /* global arrays and the namespace string */
   classes = si_array_make_reserve(sizeof(siString), 0);
   objs = si_array_make_reserve(sizeof(object), 0);
   structFuncs = si_array_make_reserve(sizeof(siString), 0);
@@ -707,37 +709,40 @@ int main(int argc, char **argv) {
 
   namespace = si_string_make("");
 
-  while (stb_c_lexer_get_token(&lex)) {
+  while (stb_c_lexer_get_token(&lex)) { /* iterate through and handle the tokens */
     if (lex.token == CLEX_parse_error) {
-      printf("\n<<<PARSE ERROR>>>\n");
+      printf("\n<<<PARSE ERROR>>>\n"); 
       break;
     }
 
     handle_token(&lex, &c_code, files[0]);
   }
 
-  f = si_file_create(outputName);
+  f = si_file_create(outputName); /* create and write to the output  c file */
   si_file_write(&f, c_code);
-  si_file_close(f);
+  si_file_close(f); /* close the file because we don't need it anymore */
 
+  /* free classes, c_code and stringStore because we don't need it anymore */
   si_array_free(classes);
 
   si_string_free(c_code);
   free(stringStore);
 
-  siString cmd = si_string_make(compiler);
-  si_string_push(&cmd, ' ');
-  si_string_append(&cmd, outputName);
+  if (!no_compile) { /* if compiling the c output is allowed*/
+    /* generate the compile command */
+    siString cmd = si_string_make(compiler);
+    si_string_push(&cmd, ' ');
+    si_string_append(&cmd, outputName);
 
-  si_string_append(&cmd, c_args);
+    si_string_append(&cmd, c_args);
 
-  if (!no_compile) {
-    system(cmd);
-    si_path_remove("output.c");
+    system(cmd); /* compile the c code */
+    si_path_remove("output.c"); /* remove the c output file  */
+  
+    si_string_free(cmd); /* free the command strign because we're not using it anymore */
   }
 
-  si_string_free(cmd);
-
+  /* free the rest of the allocated data */
   si_string_free(c_args);
   si_array_free(files);
   si_string_free(namespace);
