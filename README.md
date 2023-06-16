@@ -1,4 +1,6 @@
 # C-Plus
+![alt text](https://github.com/ColleagueRiley/c-plus/blob/main/logo.png?raw=true)
+
 C-Plus is an middle ground between c and c++. 
 
 It attemps to merge the cleanness low-levelness, and over all efficiency of c with higher level abstraction.
