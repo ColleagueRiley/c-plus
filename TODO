@@ -34,5 +34,3 @@ string switches
 {int, int} func -> func(int&, int&)
 
 for in loop 
-
-- ADD COMMENTS
