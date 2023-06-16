@@ -402,58 +402,74 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
       }
 
       case '(': {
-        if (structMode > 1) {
-          siString func = si_string_make("");
+        if (structMode > 1) { /* if we're reading from an class */
+          siString func = si_string_make("cplus_"); /* created function  (class functions always start with cplus_) */
 
-          bool nb = false;
-          int j = 0;
+          si_string_append(&func, structName); /* add structure name  */
+          si_string_push(&func, '_'); /* add seperator between the class name and the function name  */
 
+          si_string_pop(c_code); /* remove the extra space (so we can get the function info) */
+
+          /* the index of where the last tab is (+ 1), so we can get the text before the . token, this text should be the function's name + data type*/
+          i = si_string_rfind(*c_code, "  ") + 1;
+          
+          siString piece = si_string_make(*c_code + i); /* make a siString copy of the piece used for splliting the function data  */
+          siArray(siString) split = si_string_split(piece, " "); /* split into function return type / function name */
+
+          /* remove leftover function data from c-code [+ 2 for the indent / newline] */
+          si_string_erase(c_code, si_string_len(*c_code) - si_string_len(piece) - 2, si_string_len(piece) + 2);
+
+          si_string_free(piece); /* free the piece since we don't need it anymore */
+
+          si_string_append(&func, split[1]); /* append the functions name */
+
+          si_string_insert(&func, " ", -1); /* add a space in front of the function to seperate the return type from the function */
+          si_string_insert(&func, split[0], -1); /* add the return type */
+
+          si_array_free(split); /* free split since we don't need it anymore */
+          /* it should look like this at this point 
+            cplus_`structName`_`funcName`
+          */
+
+          si_string_push(&func, '('); /* add function opening  */
+
+          /* add `structType`* this, because all class functions have a pointer to the object you want to edit called 'this' */
           si_string_append(&func, structName);
-
           si_string_append_len(&func, "* this", 6);
 
+
+          /* look ahead */
           stb_lexer lex = *lexer;
           stb_c_lexer_get_token(&lex);
 
-          if (lex.token != ')')
+          if (lex.token != ')') /* if the next token is not a ')', then there are more args and there should be a , for "this" */
             si_string_append_len(&func, ", ", 2);
 
-          while ((lexer->token != ';' || nb) && lexer->token != '}') {
-            stb_c_lexer_get_token(lexer);
-            handle_token(lexer, &func, file);
 
-            if (!nb && lexer->token == '{')
-              nb = true;
+          bool inBrackets = false;
+
+          while(1){
+              stb_c_lexer_get_token(lexer); /* get the next token */
+
+              handle_token(lexer, &func, file); /* handle the next token directly into the func string */
+
+              if (!inBrackets && lexer->token == '{') /* if there is a '{' token we can't end at ';' anymore */
+                inBrackets = true;
+
+              if ((lexer->token == ';' && !inBrackets) || /* if the next line is not ;, or if it's in brackets in which case we should only wait for } */
+                  lexer->token == '}') /* if } the function ended */
+                    break; /* break out of the while loop (I use this method so that way the } and ; are read)*/
           }
 
-          siArray(siString) split = si_string_split(*c_code, " ");
+          if (inBrackets)
+            si_string_erase(&func, si_string_len(func) - 7, 2); /* remove indent for the close bracket */
 
-          si_string_insert(&func, " (", -1);
-
-          si_string_insert(&func, split[si_array_len(split) - 2], 0);
-          si_string_insert(&func, "_", 0);
-          si_string_insert(&func, structName, 0);
-          si_string_insert(&func, "cplus_", 0);
-          si_string_insert(&func, " ", 0);
-          si_string_insert(&func, split[si_array_len(split) - 3], 0);
-          si_string_insert(&func, " ", 0);
-
-          size_t eraseSize = strlen(split[si_array_len(split) - 2]) + strlen(split[si_array_len(split) - 3]);
-
-          
-          for (i = 0; i < si_array_len(split); i++)
-            si_string_free(split[i]);
-
-          si_array_free(split);
-
-          si_string_erase(c_code, si_string_len(*c_code) - eraseSize - 2 - (indent * 2), eraseSize + 2 + (indent * 2));
-
-          si_array_append(&structFuncs, func);
+          si_array_append(&structFuncs, func); /* func to the list of functions for this class (to be writen into c_plus when the class is done [see ';']) */
 
           break;
         }
 
-        else if (si_string_len(namespace)) {
+        else if (si_string_len(namespace)) { /* if we're writing a namespace */
           
           for (i = si_string_len(*c_code) - 2; i >= 0 && (*c_code)[i] != ' '; i--);
 
@@ -466,63 +482,71 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
       }
 
       case ':': {
-        stb_lexer lex = *lexer;
+        /* look ahead */
+        stb_lexer lex = *lexer; 
         stb_c_lexer_get_token(&lex);
 
-        if (lex.token == ':' && indent) {
-          stb_c_lexer_get_token(lexer);
+        if (lex.token == ':') { /* if the complete token is '::' it could be used as an namespace or for external function defines for classes '. '*/
 
-          lexer->token = '.';
-          goto CPLUS_DOT;
-          break;
-        }
+          int xx = -1;
+          if (!indent) { /* if we're in global, check if we're using a namespace or not */
+            i = si_string_rfind(*c_code, " ") + 1; /* find space before the namespace */
+            siString namespaceName = si_string_make(*c_code + i);
 
-        if (lex.token == ':') {
-          stb_c_lexer_get_token(lexer);
+            for (i = 0; i < si_array_len(namespaces); i++) /* iterating through the namespaces */
+              if (si_strings_are_equal(namespaces[i], namespaceName)) { /* we found a matching namespace */
+                xx = 1; /* say we found one */ 
+                break;
+              }
 
-          si_string_pop(c_code);
-
-          siString className = si_string_make("");
-
-          
-          for (i = si_string_len(*c_code) - 1; i >= 0; i--) {
-            if ((*c_code)[i] == ' ')
-              break;
-            si_string_push(&className, (*c_code)[i]);
+            si_string_free(namespaceName); /* free namespaceName because it's not needed anymore */
           }
 
-          si_string_reverse(&className);
+          if (xx != -1 || indent) { /* if we're in a namespace, handle it like the '.' token */
+            stb_c_lexer_get_token(lexer); /* actually move the current lexer ahead (and skip this* token) */
 
-          si_string_insert(c_code, "cplus_", si_string_len(*c_code) - si_string_len(className) - 1);
+            lexer->token = '.'; /* set the current token to . since it doesn't need to be ':' anymore */
 
-          si_string_push(c_code, '_');
-
-          bool in = false;
-
-          while (lexer->token != '}') {
-            stb_c_lexer_get_token(lexer);
-
-            if (in && lexer->token != ')') {
-              in = false;
-
-              si_string_append(c_code, ", ");
-            }
-
-            handle_token(lexer, c_code, file);
-
-            if (lexer->token == '(') {
-              in = true;
-
-              si_string_append(c_code, className);
-              si_string_append(c_code, "* this");
-            }
+            goto CPLUS_DOT; /* goto where the '.' token is handled*/
           }
 
-          si_string_free(className);
+          if (!indent) { /* otherwise, if we're in global it should be handled like an externally defined class function */
+            stb_c_lexer_get_token(lexer); /* go to next token */
+            
+            si_string_pop(c_code); /* remove the extra space */
+            si_string_push(c_code, '_'); /* replace '::' with _ */
+
+            i = si_string_rfind(*c_code, " ") + 1; /* get the class name based on the last space */
+            siString className = si_string_make(*c_code + i);
+            si_string_pop(&className); /* this == `className`_ because it's apart of the function, so remove the extra _ with pop */
+
+            /* add "cplus_" before the function because all c++ class functions have cplus_ before them */
+            si_string_insert(c_code, "cplus_", si_string_len(*c_code) - si_string_len(className) - 2);
+
+            while (lexer->token != ')') { /* loop through the token until ) (or ( actually) */
+              stb_c_lexer_get_token(lexer); /* get the next token */
+              handle_token(lexer, c_code, file); /* handle the next token */
+              
+              if (lexer->token == '(') { /* if the next token is a `(` */
+                si_string_append(c_code, className); 
+                si_string_append(c_code, "* this"); /* add "`className`* type" to the c code string because all class functions require a pointer of the object you want to edit */
+
+                stb_lexer lex = *lexer; /* check the next token */
+                stb_c_lexer_get_token(&lex);
+                
+                if (lex.token != ')') /* if the next token isn't a ')' token, then it's an arg so add a ", " for syntax */
+                  si_string_append(c_code, ", ");
+
+                break; /* break out of the while loop because we don't need it anymore */
+              }
+            }
+
+            si_string_free(className); /* free the className because we don't need it anymore */
+          }
         }
 
         else
-          si_string_push(c_code, lexer->token);
+          si_string_push(c_code, lexer->token); /* otherwise just push the ':' token */
         break;
       }
 
@@ -542,7 +566,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         /* typedefless struct support  (if we're finishing up an class and there was no typedef) */
         if (structMode == 1 && !typedefCheck) { 
           /* add a space followed by the class's name */
-          strAppendL(c_code, " ", 1); 
+          strAppendL(c_code, "", 1); 
           strAppend(c_code, structName);
 
           typedefCheck = false; /* we're doing with working on the struct so typedefCheck can be toggled back off */
@@ -608,8 +632,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
 }
 
 int main(int argc, char **argv) {
-  if (argc == 1) {
-  CPLUS_NO_FILE:
+  if (argc == 1) { /* if there are no args, there are no files given */
+  CPLUS_NO_FILE: /* for calling back if there are no files given */
 
     printf("%s%s%s: %s%s%s: no input files\ncompilation terminated.\n",
            textBold(argv[0]),
@@ -621,9 +645,9 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  bool no_compile = false;
-  char *outputName = "output.c";
-  char *compiler = "gcc";
+  bool no_compile = false; /* compile the c_code? */
+  char *outputName = "output.c"; /* output name for the c file */
+  char *compiler = "gcc"; /* c compiler to use */
 
   
   siString c_args = si_string_make("");
