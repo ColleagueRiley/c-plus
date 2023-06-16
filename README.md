@@ -5,14 +5,10 @@ It attemps to merge the cleanness low-levelness, and over all efficiency of c wi
 
 Although C-Plus supports objects [via structures with functions] it does not support OOP directly and does not plan to ever support OOP directly.
 
-Build status (linux) :
-![cplus workflow](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp.yml/badge.svg)
-
-Build status (windows) :
-![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp-windows.yml/badge.svg)
-
-Build status (macOS) :
-![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/c-cpp-macos.yml/badge.svg)
+# Build statuses
+![cplus workflow](https://github.com/ColleagueRiley/c-plus/actions/workflows/linux.yml/badge.svg)
+![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/windows.yml/badge.svg)
+![cplus workflow windows](https://github.com/ColleagueRiley/c-plus/actions/workflows/macos.yml/badge.svg)
 
 # building
     to build the cplus compiler, simply run `make`
