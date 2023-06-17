@@ -121,12 +121,11 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
 
         else if (si_strings_are_equal(lexer->string, "struct")) { /* if the current token is struct */
           structMode++; /* activate structmode (this is so we can start collecting data for structs so we can make them into objects if we need to and to handle typedef) */
-
+      
           if (!typedefCheck) /* if there wasn't a typedef before this struct define */
             strAppendL(c_code, "typedef ", 8); /* add our own typedef */
-          
-          strAppend(c_code, lexer->string); /* append the struct token to the code */
-          si_string_push(c_code, ' '); /* add a space for the next token */
+
+          strAppendL(c_code, "struct ", 7); /* add the `struct` token */
 
           stb_c_lexer_get_token(lexer); /* get the next token which should be the struct's name */
           
@@ -145,12 +144,17 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
             si_string_insert(&structName, "_", si_string_len(namespace) - 1);
           }
 
+          strAppend(c_code, structName); /* append the struct token to the code */
+          si_string_push(c_code, ' '); /* add a space for the next token */
+
           /* check if the next token is a { OR ;, if it's not there's an error */
           stb_lexer lex = *lexer;
           stb_c_lexer_get_token(&lex);
           
           if (lex.token != '{' && lex.token != ';')
             CPLUS_ERROR(file, "  expected a '{' or ';'", lex);
+
+          break;
         }
 
         siString NS = si_string_make(""); /* namespace opperator before the token, if there is any */
@@ -162,7 +166,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           si_string_append(&NS, *c_code + i); /* add the namespace to NS */
           si_string_pop(&NS); /* remove the extra _ */
         }
-        
+
         for (i = 0; i < si_array_len(classes); i++) { /* iterate through the saved classes */
           si_string_append(&NS, lexer->string); /* add the struct to the NS for simplicity */
 
@@ -179,6 +183,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
             o.varName = strdup(lex.string); 
             
             /* this segs fault when you create moree than 3 objs */
+            assert(objs != NULL);
+
             si_array_append(&objs, NULL);
 
             objs[si_array_len(objs) - 1] = o; /* push the object into objs */
@@ -378,7 +384,6 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
 
         else { /* if an object was not found */
           /* see if we can find an namespace instead */
-
           for (i = 0; i < si_array_len(namespaces); i++) { /* iterating through the namespaces */
             if (si_strings_are_equal(namespaces[i], objectName)) { /* we found a matching namespace */
               xx = 1; /* say we found one */ 
@@ -493,22 +498,33 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         stb_c_lexer_get_token(&lex);
 
         if (lex.token == ':') { /* if the complete token is '::' it could be used as an namespace or for external function defines for classes '. '*/
-
           int xx = -1;
-          if (!indent) { /* if we're in global, check if we're using a namespace or not */
+          if (!indent) { /* if we're in global, check if we're using a namespace or not */\
+            bool addSpaceBack = false; /* if we removed a space, remind ourselves to add it back [if needed] */
+
+            if (si_string_back(*c_code) == ' ') { /* if the last char is a space, remove the space */
+              si_string_pop(c_code); /* [ this is so when we look for the last space we find the last space behind what we think is the namespace nad not this one ] */
+              addSpaceBack = true; /* remind ourselves later we removed the space */
+            }
+
             i = si_string_rfind(*c_code, " ") + 1; /* find space before the namespace */
             siString namespaceName = si_string_make(*c_code + i);
 
-            for (i = 0; i < si_array_len(namespaces); i++) /* iterating through the namespaces */
+            for (i = 0; i < si_array_len(namespaces); i++) { /* iterating through the namespaces */
               if (si_strings_are_equal(namespaces[i], namespaceName)) { /* we found a matching namespace */
                 xx = 1; /* say we found one */ 
                 break;
               }
+            }
+
+            if (xx == -1 && addSpaceBack)  /* if a namespace wasn't found and a space was removed */
+              si_string_push(c_code, ' '); /* add the space back */
 
             si_string_free(namespaceName); /* free namespaceName because it's not needed anymore */
           }
 
           if (xx != -1 || indent) { /* if we're in a namespace, handle it like the '.' token */
+
             stb_c_lexer_get_token(lexer); /* actually move the current lexer ahead (and skip this* token) */
 
             lexer->token = '.'; /* set the current token to . since it doesn't need to be ':' anymore */
@@ -572,7 +588,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         /* typedefless struct support  (if we're finishing up an class and there was no typedef) */
         if (structMode == 1 && !typedefCheck) { 
           /* add a space followed by the class's name */
-          strAppendL(c_code, "", 1); 
+          si_string_push(c_code, ' ');
           strAppend(c_code, structName);
 
           typedefCheck = false; /* we're doing with working on the struct so typedefCheck can be toggled back off */
@@ -584,8 +600,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         /* finish defining classes and handle namespaces */
 
         if (structMode == 1) { /* classes */
-          strAppendL(c_code, "\n", 1); /* add another newline to the code for cleanness */
-
+          si_string_push(c_code, '\n'); /* add another newline to the code for cleanness */
+          
           si_array_append(&classes, structName); /* add the new class to the class list */
 
           int i, j;
@@ -715,6 +731,7 @@ int main(int argc, char **argv) {
   /* global arrays and the namespace string */
   classes = si_array_make_reserve(sizeof(siString), 0);
   objs = si_array_make_reserve(sizeof(object), 0);
+
   structFuncs = si_array_make_reserve(sizeof(siString), 0);
   namespaces = si_array_make_reserve(sizeof(siString), 0);
 
