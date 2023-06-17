@@ -58,9 +58,9 @@ int main() {
 - opperator overloading
 
 # Sili
-The C-Plus compiler uses the [Sili Toolkit](https::/github.com/EimaMei/Sili-Toolkit)] for handling strings, arrays and file I/O
+The C-Plus compiler uses the [Sili Toolchain](https://github.com/EimaMei/Sili-Toolchain) for handling strings, arrays and file I/O
 
-Sili helps to make C feel more modern and high level. Unlike many other higher level Toolkit/Standard Libraries [such as the c++ standard library]. 
+Sili helps to make C feel more modern and high level. Unlike many other higher level Toolchain/Standard Libraries [such as the c++ standard library]. 
 Sili also makes sure the library doesn't just feel nice to use, it also runs efficiently.
 
 Not does Sili modernize C while staying efficient, it is also very lightweight and is all contained in one small single-header-file.
