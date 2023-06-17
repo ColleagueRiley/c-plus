@@ -18,7 +18,7 @@ runWindows:
 
 all:
 	@make main
-	./cplus test.cp -no-compile
+	./cplus output.cp -no-compile
 
 install:
 	sudo mv ./cplus /usr/bin
