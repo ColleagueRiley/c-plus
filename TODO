@@ -1,8 +1,6 @@
 - bugs
-- multi namespace
 - struct in a namespace v
 - multi structs v
-- namespace '.'
 
 - object functions
     replace object.function(args) with _cplus_class_function(object, args);

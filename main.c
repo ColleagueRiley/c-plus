@@ -70,7 +70,7 @@ siArray(object) objs;      /* array of all the objects, stored as `object` struc
 
 siString namespace;           /* string of the current namespace (if we're in an namespace) */
 siArray(siString) namespaces; /* list of all the saved namespaces */
-
+bool NSfunc = false; /* if we just handled a function in a namespace (so we don't repeat the `;` token ) */
 
 #define CPLUS_ERROR(file, error, lex) {\
   stb_lex_location loc;\
@@ -92,7 +92,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
 
           si_string_set(&namespace, lexer->string); /* set the current namespace to the next token (which should be the namespace's name) */
 
-          si_array_append(&namespaces, namespace); /* append the namespace to the namespace list for checking later */
+          si_array_append(&namespaces, lexer->string); /* append the namespace to the namespace list for checking later */
 
           /* check if the next token is a {, if it's not there's an error */
           stb_lexer lex = *lexer;
@@ -297,6 +297,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           strAppendL(c_code, " ", 1);
 
         strAppendL(c_code, "\n\n", 2); /* add two newlines for cleaner code */
+        
+        NSfunc = false; /* incase if NSfunc is still on because there was no `;` token, turn it off now */
         break;
 
       case '.': {
@@ -377,13 +379,14 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         else { /* if an object was not found */
           /* see if we can find an namespace instead */
 
-          for (i = 0; i < si_array_len(namespaces); i++) /* iterating through the namespaces */
+          for (i = 0; i < si_array_len(namespaces); i++) { /* iterating through the namespaces */
             if (si_strings_are_equal(namespaces[i], objectName)) { /* we found a matching namespace */
               xx = 1; /* say we found one */ 
               break;
             }
+          }
 
-          if (xx != -1) { 
+          if (xx != -1) {  
             /* 
               if the namespace is found, replace . with _ because a namespace is just "`namespace`_" in our c code, 
               so "`namespace`." can easily be converted just by changing the . to _ 
@@ -470,11 +473,14 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         }
 
         else if (si_string_len(namespace)) { /* if we're writing a namespace */
-          
-          for (i = si_string_len(*c_code) - 2; i >= 0 && (*c_code)[i] != ' '; i--);
+          si_string_pop(c_code); /* erase the extra space */
+          i = si_string_rfind(*c_code, " "); /* find the last space, (this should be where the function name starts so we can add the namespace name in front of it) */
 
+          /* add `namespace`_ to the c string */
+          si_string_insert(c_code, "_", i);
           si_string_insert(c_code, namespace, i);
-          si_string_insert(c_code, "_", i + si_string_len(namespace));
+
+          NSfunc = true; /* we just wrote a function don't repeat the `;` token thing  */
         }
 
         si_string_push(c_code, lexer->token);
@@ -594,6 +600,11 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         }
 
         else if (si_string_len(namespace) && indent == 1) { /* handle namespaces [write `namespace`_ to the variable inside the namespace] */
+          if (NSfunc) {
+            NSfunc = false;
+            break;
+          }
+          
           for (i = si_string_len(*c_code) - 2; i >= 0; i--) { /* try to find where the variable name is */
             if ((*c_code)[i] == ' ' && (*c_code)[i - 1] == '=' && i - 2 >= 0)
               i -= 2;  /* if there is a space with a = after, skip over to the next part */
@@ -745,8 +756,7 @@ int main(int argc, char **argv) {
   /* free the rest of the allocated data */
   si_string_free(c_args);
   si_array_free(files);
-  si_string_free(namespace);
-
+ 
   if (si_array_len(namespaces))
     si_array_free(namespaces);
 }
