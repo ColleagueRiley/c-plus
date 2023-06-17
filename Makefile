@@ -14,11 +14,11 @@ main-debug:
 	gcc -g -lm main.c -DMEMWATCH -DMW_STDIO memwatch/memwatch.c -o cplus
 
 runWindows: 
-	./cplus.exe test.cp
+	./cplus.exe main.cp
 
 all:
 	@make main
-	./cplus output.cp -no-compile
+	./cplus main.cp -no-compile
 
 install:
 	sudo mv ./cplus /usr/bin
