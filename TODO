@@ -16,7 +16,3 @@ operator overloading
 string switches
 
 - multi argument system 
-
-{int, int} func -> func(int&, int&)
-
-for in loop 

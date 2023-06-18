@@ -56,6 +56,11 @@ int main() {
 - void*/casting object functions
 - load object using data (eg. char*)
 - operator overloading
+- embeded namespaces
+- embeded structs ~
+- pre-processors (these aren't handled yet)
+- header files
+- string switches
 
 # Sili
 The C-Plus compiler uses the [Sili Toolchain](https://github.com/EimaMei/Sili-Toolchain) for handling strings, arrays and file I/O
