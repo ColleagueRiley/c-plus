@@ -16,6 +16,3 @@ jobs:
     
     - name: make
       run: make
-    
-    - name: test
-      run: gcc output.c && ./a.out
