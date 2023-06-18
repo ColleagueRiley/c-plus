@@ -3,7 +3,7 @@
 
 C-Plus is an middle ground between c and c++. 
 
-It attemps to merge the cleanness low-levelness, and over all efficiency of c with higher level abstraction.
+It attempts to merge the cleanness low-levelness, and over all efficiency of c with higher level abstraction.
 
 Although C-Plus supports objects [via structures with functions] it does not support OOP directly and does not plan to ever support OOP directly.
 
@@ -22,13 +22,13 @@ Although C-Plus supports objects [via structures with functions] it does not sup
 # installing
     to install cplus, simply move cplus into your bin directory, on unix you can do this just by running `sudo make install` or `sudo mv cplus /usr/bin`
 
-    to install cplus on windows however, you must move cplus into the same directory that your c-compiler exectuable file is in
+    to install cplus on windows however, you must move cplus into the same directory that your c-compiler executable file is in
 
 # Supported Features
 - structs can be used normally without typedef
 - structs can be used as a class, i.e. the usr can define functions inside structs
 
-externally defined functions use the same synstax as c++
+externally defined functions use the same syntax as c++
 
 ex.
 ```cpp
@@ -55,7 +55,7 @@ int main() {
 # Future Features
 - void*/casting object functions
 - load object using data (eg. char*)
-- opperator overloading
+- operator overloading
 
 # Sili
 The C-Plus compiler uses the [Sili Toolchain](https://github.com/EimaMei/Sili-Toolchain) for handling strings, arrays and file I/O
@@ -65,12 +65,12 @@ Sili also makes sure the library doesn't just feel nice to use, it also runs eff
 
 Not does Sili modernize C while staying efficient, it is also very lightweight and is all contained in one small single-header-file.
 
-This is why C-Plus uses sili for copiling and why C-Plus ships with sili and uses it as the offical C-Plus Standard Library.
+This is why C-Plus uses sili for compiling and why C-Plus ships with sili and uses it as the official C-Plus Standard Library.
 
 # Copyright
-The language design of c-plus (conversion to c, basic design, ect) is 100% public domain.
+The language design of c-plus (conversion to c, basic design, etc) is 100% public domain.
 
-This means you can make your own c-plus compiler if you wish to. Infact, I encourage that you do if you're interested. 
+This means you can make your own c-plus compiler if you wish to. In fact, I encourage that you do if you're interested. 
 
 However,
 
