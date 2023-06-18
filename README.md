@@ -53,6 +53,7 @@ int main() {
 ```
 
 # Future Features
+- compiling from multiple sources
 - void*/casting object functions
 - load object using data (eg. char*)
 - operator overloading
