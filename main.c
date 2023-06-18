@@ -739,7 +739,7 @@ int main(int argc, char **argv) {
   stb_c_lexer_init(&lex, text, text + f.size, stringStore, 0x10000); /* init the c lexer for stb */
 
   /* global arrays and the namespace string */
-  classes = si_array_make_reserve(sizeof(siString), 1);
+  classes = si_array_make_reserve(sizeof(siString), 0);
   objs = si_array_make_reserve(sizeof(object), 0);
 
   structFuncs = si_array_make_reserve(sizeof(siString), 0);
