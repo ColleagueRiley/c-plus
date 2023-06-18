@@ -17,4 +17,4 @@ jobs:
       run: make main
 
     - name: test
-      run: gcc output.c && a.exe
+      run: ./cplus main.cp && gcc output.c && a.exe
