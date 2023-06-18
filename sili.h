@@ -1653,6 +1653,9 @@ rawptr si_array_make_reserve(usize sizeof_element, usize count) {
 	header->capacity = count;
 	header->type_size = sizeof_element;
 
+	if (!header->capacity)
+		header->capacity = 1;
+
 	return array;
 }
 
