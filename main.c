@@ -189,7 +189,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
             o.varName = strdup(lex.string); 
 
             /* this seg faults when you create more than 3 objs */
-            
+
             si_array_append(&objs, NULL);
 
             objs[si_array_len(objs) - 1] = o; /* push the object into objs */
@@ -332,7 +332,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         for (i = 0; i < si_array_len(objs); i++) { /* go through the saved objs */
           if (si_strings_are_equal(objs[i].varName, objectName) && /* if index's object name matches our object's name AND */ 
               objs[i].indent <= indent && /* make sure it's not in a higher scope AND */
-              (xx != -1 || objs[i].indent > objs[xx].indent)) /* if we already found the object index that matches, see if this one is closer in scope than the last found one */
+              (xx == -1 || objs[i].indent > objs[xx].indent)) /* only if we didn't find a match or the new match matches the scope better */
                   xx = i; /* we found a matching one in a readable scope! */
         }
 
@@ -343,7 +343,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           stb_lexer lex;
           for (lex = *lexer; lex.token != ';' && lex.token != '('; stb_c_lexer_get_token(&lex))
             funcName = lex.string; /* grab the function name */
-
+            
           if (lex.token == '(') { /* we've an object and we're running a function */
             siString func = si_string_make("cplus_"); /* all class functions start with cplus_ */
 
