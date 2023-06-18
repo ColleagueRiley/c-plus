@@ -1,7 +1,14 @@
-namespace RSGL {
-  void func();
+namespace testNS {
+  struct test {
+    int b;
+
+    void func();
+  };
 }
 
+
 int main() {
-  RSGL.func();
+  testNS.test a; /* you can use testNS. or testNS:: here */  
+
+  a.func();
 }
