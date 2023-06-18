@@ -1,5 +1,12 @@
 - compiling from multiple sources
 
+- allow class functions to directly edit the values of a struct w/o this->
+    eg.\
+    a = 5;\
+    instead of\
+    this->a = 5;
+    
+
 - void*/casting objects
     void* a;
     ((class*)a)->func()

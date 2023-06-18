@@ -54,6 +54,7 @@ int main() {
 
 # Future Features
 - compiling from multiple sources
+- allow class functions to directly edit the values of a struct w/o this->
 - void*/casting object functions
 - load object using data (eg. char*)
 - operator overloading
