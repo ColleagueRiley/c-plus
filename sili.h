@@ -1112,7 +1112,7 @@ void si_string_reverse(siString* str);
 void si_string_reverse_len(siString* str, usize len);
 
 siArray(siString) si_string_split(siString str, cstring separator);
-bool si_strings_are_equal(cstring lhs, cstring rhs);
+bool si_cstr_equal(cstring lhs, cstring rhs);
 void si_string_clear(siString* str);
 
 void si_string_free(siString str);
@@ -1942,7 +1942,7 @@ siString si_impl_buffer_to_sistring(rawptr buffer, siBufferHeader* header, cstri
 	for_range (i, {0, header->len}) {
 		cstring cstr = *si_cast(char**, si_buffer_get_ptr(buffer, header->type_size, i));
 
-		if (separator != nil && !si_strings_are_equal(cstr, back)) {
+		if (separator != nil && !si_cstr_equal(cstr, back)) {
 			si_string_join(&result, separator, cstr);
 		}
 		else {
@@ -2414,7 +2414,7 @@ siArray(siString) si_string_split(siString str, cstring separator) {
 
 	return res;
 }
-bool si_strings_are_equal(cstring lhs, cstring rhs) {
+bool si_cstr_equal(cstring lhs, cstring rhs) {
 	if (lhs == rhs) {
 		return true;
 	}
