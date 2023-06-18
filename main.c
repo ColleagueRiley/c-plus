@@ -7,7 +7,7 @@
  *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
- * freely, subject to the following r estrictions:
+ * freely, subject to the following restrictions:
  *
  * 1. The origin of this software must not be misrepresented; you must not
  * claim that you wrote the original software. If you use this software
@@ -108,7 +108,6 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           stb_lexer lex = *lexer;
           stb_c_lexer_get_token(&lex);
 
-
           if (si_strings_are_equal(lex.string, "struct")) /* if the next token is a struct */
             typedefCheck = true; /* there was a typedef [before a struct token] */
 
@@ -157,9 +156,9 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           break;
         }
 
-        siString NS = si_string_make(""); /* namespace opperator before the token, if there is any */
+        siString NS = si_string_make(""); /* namespace operator before the token, if there is any */
 
-        if (si_string_back(*c_code) == '_') { /* if the last char is a _, there's probably a namespace opperator */
+        if (si_string_back(*c_code) == '_') { /* if the last char is a _, there's probably a namespace operator */
           /* the index of the char after the last space in the c_code, this means the space before the _, this is so we can find "`namespace`_ and then turn it into `namespace` via pop */
           i = si_string_rfind(*c_code, " ") + 1;
 
@@ -189,7 +188,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
 
             o.varName = strdup(lex.string); 
 
-            /* this segs fault when you create moree than 3 objs */
+            /* this seg faults when you create more than 3 objs */
             
             si_array_append(&objs, NULL);
 
@@ -425,7 +424,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           siString func = si_string_make("cplus_"); /* created function  (class functions always start with cplus_) */
 
           si_string_append(&func, structName); /* add structure name  */
-          si_string_push(&func, '_'); /* add seperator between the class name and the function name  */
+          si_string_push(&func, '_'); /* add separator between the class name and the function name  */
 
           si_string_pop(c_code); /* remove the extra space (so we can get the function info) */
 
@@ -456,14 +455,12 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           si_string_append(&func, structName);
           si_string_append_len(&func, "* this", 6);
 
-
           /* look ahead */
           stb_lexer lex = *lexer;
           stb_c_lexer_get_token(&lex);
 
           if (lex.token != ')') /* if the next token is not a ')', then there are more args and there should be a , for "this" */
             si_string_append_len(&func, ", ", 2);
-
 
           bool inBrackets = false;
 
@@ -483,7 +480,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           if (inBrackets)
             si_string_erase(&func, si_string_len(func) - 7, 2); /* remove indent for the close bracket */
 
-          si_array_append(&structFuncs, func); /* func to the list of functions for this class (to be writen into c_plus when the class is done [see ';']) */
+          si_array_append(&structFuncs, func); /* func to the list of functions for this class (to be written into c_plus when the class is done [see ';']) */
 
           break;
         }
@@ -514,7 +511,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
             bool addSpaceBack = false; /* if we removed a space, remind ourselves to add it back [if needed] */
 
             if (si_string_back(*c_code) == ' ') { /* if the last char is a space, remove the space */
-              si_string_pop(c_code); /* [ this is so when we look for the last space we find the last space behind what we think is the namespace nad not this one ] */
+              si_string_pop(c_code); /* [ this is so when we look for the last space we find the last space behind what we think is the namespace name not this one ] */
               addSpaceBack = true; /* remind ourselves later we removed the space */
             }
 
@@ -730,7 +727,7 @@ int main(int argc, char **argv) {
 
   siFile f = si_file_open(files[0]); /* open and read the first file into `text` */
   siString text = si_file_read(f);
-  si_file_close(f); /* close the file because it's not reuiqred anymore */
+  si_file_close(f); /* close the file because it's not required anymore */
 
   stb_lexer lex;
   siString c_code = si_string_make("#define __cplus__\n\n"); /* add cplus macro */
@@ -777,7 +774,7 @@ int main(int argc, char **argv) {
     system(cmd); /* compile the c code */
     si_path_remove("output.c"); /* remove the c output file  */
   
-    si_string_free(cmd); /* free the command strign because we're not using it anymore */
+    si_string_free(cmd); /* free the command string because we're not using it anymore */
   }
 
   /* free the rest of the allocated data */
