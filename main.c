@@ -84,7 +84,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
   /* double tabs are used for switches here */
   
   int i; /* used in for loops */
-  
+
   switch (lexer->token) {
       case CLEX_id: {
         if (si_strings_are_equal(lexer->string, "namespace")) {
@@ -190,8 +190,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
             o.varName = strdup(lex.string); 
 
             /* this segs fault when you create moree than 3 objs */
-            assert(objs != NULL);
-
+            
             si_array_append(&objs, NULL);
 
             objs[si_array_len(objs) - 1] = o; /* push the object into objs */
@@ -586,7 +585,6 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
 
       case ';': {
         /* cleaning up syntax */
-        
         if (structMode == 1 && typedefCheck) /* if we're finishing up an class and there was a typedef */
           si_string_erase(c_code, si_string_len(*c_code) - si_string_len(structName) - 3, 2); /* remove the extra \n */
 
@@ -615,7 +613,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
           si_string_push(c_code, '\n'); /* add another newline to the code for cleanness */
           
           si_array_append(&classes, structName); /* add the new class to the class list */
-
+          
           int i, j;
 
           for (i = 0; i < si_array_len(structFuncs); i++) { /*iterate through all the saved functions for this class */
@@ -741,7 +739,7 @@ int main(int argc, char **argv) {
   stb_c_lexer_init(&lex, text, text + f.size, stringStore, 0x10000); /* init the c lexer for stb */
 
   /* global arrays and the namespace string */
-  classes = si_array_make_reserve(sizeof(siString), 0);
+  classes = si_array_make_reserve(sizeof(siString), 1);
   objs = si_array_make_reserve(sizeof(object), 0);
 
   structFuncs = si_array_make_reserve(sizeof(siString), 0);
@@ -755,7 +753,7 @@ int main(int argc, char **argv) {
       break;
     }
 
-    handle_token(&lex, &c_code, files[0]);
+    handle_token(&lex, &c_code, files[0]);  
   }
 
   f = si_file_create(outputName); /* create and write to the output  c file */

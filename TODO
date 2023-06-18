@@ -1,23 +1,11 @@
-- bugs
-- struct in a namespace v
-- multi structs v
-
-- object functions
-    replace object.function(args) with _cplus_class_function(object, args);
-    this->
-    load data from this-> 
-    make it so it only loads data when it is used per function
-
-- pointer objects
-    obj->func(obj);
-
-- void* objects
+- void*/casting objects
     void* a;
     ((class*)a)->func()
     *((class)a).func()
 
-- embeded structs 
 
+- embeded structs [ in another struct ]
+- embeded namespace [ in another namespace ]
 
 operator overloading
 
