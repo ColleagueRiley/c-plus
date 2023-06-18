@@ -168,9 +168,16 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
         }
 
         for (i = 0; i < si_array_len(classes); i++) { /* iterate through the saved classes */
-          si_string_append(&NS, lexer->string); /* add the struct to the NS for simplicity */
+          siString className = si_string_make(NS); /* make a siString from NS so we don't write directly on NS */ 
+          
+          if (si_string_len(className)) /* if there was a namespace */
+            si_string_push(&className, '_'); /* add "_`class name`" to fully class name */
 
-          if (si_strings_are_equal(classes[i], NS)) { /* if the current token is a class */
+          si_string_append(&className, lexer->string); 
+
+          if (si_strings_are_equal(classes[i], className)) { /* if the current token is a class */
+            siString ogStr = si_string_make(lexer->string); /* grab original string (structure name w/o namespace) */
+
             object o = {"", classes[i], indent}; /* make a new object */
 
             /* get the object's name */
@@ -181,7 +188,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
               stb_c_lexer_get_token(&lex);
 
             o.varName = strdup(lex.string); 
-            
+
             /* this segs fault when you create moree than 3 objs */
             assert(objs != NULL);
 
@@ -189,9 +196,14 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char* file) {
 
             objs[si_array_len(objs) - 1] = o; /* push the object into objs */
 
-            lexer->string = classes[i]; /* set lexer's string back to the class */
+            si_string_append(c_code, ogStr);
+
+            si_string_free(ogStr); /* free original string */
+            lexer->string = ""; /* set the next token to nothing so it isn't appended */
             break;
           }
+          
+          si_string_free(className);
         }
 
         si_string_free(NS); /* free NS */
