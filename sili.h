@@ -191,6 +191,11 @@ extern "C" {
 	#include <pthread.h>
 
 	#include <sys/stat.h>
+
+	#if defined(SI_SYSTEM_OSX)
+	#include <sys/socket.h>
+	#endif
+
 	#ifndef SI_SYSTEM_OSX
 	#include <sys/sendfile.h>
 	#endif
