@@ -2644,7 +2644,11 @@ isize si_path_copy(cstring existing_path, cstring new_path) {
 		struct stat stat_existing;
 		fstat(existing_fd, &stat_existing);
 
-		isize size = sendfile(new_fd, existing_fd, 0, stat_existing.st_size);
+		#if defined(SI_SYSTEM_UNIX)
+			isize size = sendfile(new_fd, existing_fd, 0, stat_existing.st_size);
+		#else
+			isize size = sendfile(new_fd, existing_fd, 0, &stat_existing.st_size, NULL, 0);
+		#endif
 
 		close(new_fd);
 		close(existing_fd);
