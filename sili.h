@@ -457,8 +457,9 @@ SI_STATIC_ASSERT(sizeof(f64) == 8);
 	| SI_ASSERT            |
 	========================
 */
-usize si_impl_assert_msg(bool condition, cstring condition_str, cstring message, cstring file, i32 line);
-#define SI_ASSERT_MSG(condition, message) si_impl_assert_msg(condition, #condition, message, __FILE__, __LINE__)
+usize si_impl_assert_msg(bool condition, cstring condition_str, cstring file, i32 line, cstring func, cstring message, ...);
+
+#define SI_ASSERT_MSG(condition, message) si_impl_assert_msg(condition, #condition, __FILE__, __LINE__, __func__, message, "")
 #define SI_ASSERT(condition) SI_ASSERT_MSG(condition, nil)
 #define SI_ASSERT_NOT_NULL(ptr) SI_ASSERT_MSG((ptr) != nil, #ptr " must not be NULL")
 #define SI_PANIC_MSG(message) si_impl_assert_msg(false, "SI_PANIC(" message ")", __FILE__, __LINE__, message, "")
@@ -1564,13 +1565,26 @@ void si_debug_cleanup(void);
 
 #if defined(SI_GENERAL_IMPLEMENTATION)
 
-usize si_impl_assert_msg(bool condition, cstring condition_str, cstring message, cstring file, i32 line) {
-	if (!condition) {
-		fprintf(stderr, "Assertion \"%s\" at \"%s:%d\"%s %s\n", condition_str, file, line, (message != nil ? ":" : ""), (message != nil ? message : ""));
-		abort();
+usize si_impl_assert_msg(bool condition, cstring condition_str, cstring file, i32 line, cstring func, cstring message, ...) {
+	if (condition) {
+		return 0;
 	}
 
-	return 0;
+
+	fprintf(stderr, "Assertion \"%s\" at \"%s:%d\": %s%s", condition_str, file, line, func, (message != nil ? ": " : ""));
+
+	if (message != nil) {
+		va_list va;
+
+		va_start(va, message);
+		vprintf(message, va);
+		puts("");
+		va_end(va);
+	}
+
+	abort();
+
+	return 1;
 }
 
 #if defined(SI_MEMORY_LOGGING)
