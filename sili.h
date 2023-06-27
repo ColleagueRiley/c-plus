@@ -2666,6 +2666,7 @@ inline isize si_path_move(cstring existing_path, cstring new_path) {
 		return SI_ERROR;
 	#endif
 }
+
 inline isize si_path_remove(cstring path) {
 	#if defined(SI_SYSTEM_WINDOWS)
 		isize pos = si_string_rfind_ex((siString)path, si_cstr_len(path), 0, ".");
@@ -2675,12 +2676,11 @@ inline isize si_path_remove(cstring path) {
 		else {
 			return (RemoveDirectoryA(path) != 0);
 		}
-	#elif defined(SI_SYSTEM_OSX)
-		return unlink(filename);
 	#else
 		return remove(path);
 	#endif
 }
+
 
 inline cstring si_path_base_name(cstring path) {
 	isize pos = si_string_rfind_ex((siString)path, si_cstr_len(path) - 1, 0, &SI_PATH_SEPARATOR);
@@ -2905,11 +2905,7 @@ inline siThread si_thread_create(siFunction function, rawptr arg) {
 
 
 inline void si_thread_start(siThread* t) {
-	usize minimum = 0;
-	#if !defined(SI_SYSTEM_WINDOWS)
-		minimum = PTHREAD_STACK_MIN;
-	#endif
-	si_thread_start_stack(t, minimum);
+	si_thread_start_stack(t, 0);
 }
 
 void si_thread_start_stack(siThread* t, usize stack_size) {
@@ -2961,6 +2957,7 @@ void si_thread_join(siThread* t) {
 
 	t->is_running = false;
 }
+
 void si_thread_cancel(siThread* t) {
 	#if defined(SI_SYSTEM_WINDOWS)
 		puts("si_thread_cancel: This feature on Windows is not supported as of now.");
@@ -2980,6 +2977,7 @@ void si_thread_cancel(siThread* t) {
 
 	#endif
 }
+
 inline void si_thread_destroy(siThread* t) {
 	si_thread_join(t);
 }
@@ -2988,7 +2986,7 @@ void si_thread_set_priority(siThread t, i32 priority) {
 	#if defined(SI_SYSTEM_WINDOWS)
 		isize res = SetThreadPriority(t.id, priority);
 		SI_ASSERT_MSG(res != 0, "Something went wrong setting the thread priority.");
-	#else
+	#elif defined(SI_SYSTEM_UNIX)
 		usize error_code = pthread_setschedprio(t.id, priority);
 
 		cstring error_msg = nil;
@@ -3001,6 +2999,10 @@ void si_thread_set_priority(siThread t, i32 priority) {
 			default:       error_msg = si_string_make_fmt("Unknown error code (%li).", error_code);
 		}
 		SI_ASSERT_MSG(error_code == SI_OKAY, error_msg);
+	#else
+		SI_PANIC_MSG("si_thread_set_priority: Not supported on MacOS.");
+		SI_UNUSED(t);
+		SI_UNUSED(priority);
 	#endif
 }
 
