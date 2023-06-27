@@ -1,3 +1,5 @@
+- handle multi-line pre-processors
+
 - compiling from multiple sources
 
 - allow class functions to directly edit the values of a struct w/o this->
@@ -13,15 +15,14 @@
     *((class)a).func()
 
 
+- typedef support for classes [as alt name for classes]
 - embeded structs [ in another struct ]
 - embeded namespace [ in another namespace ]
 
 operator overloading
 
-- handle pre-processors
-- header files
-
 (maybe)
-string switches
+- string switches
 
 - multi argument system 
+- allow c errors to extend to the header 

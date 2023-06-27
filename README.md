@@ -48,21 +48,54 @@ namespace ns {
 
 int main() {
     ns.a = 5;
-    ns::a = 5; /* this still works but it's ugly :)*/
+    ns::a = 5; /* this still works but it's ugly :) */
 }
 ```
 
-# Future Features
+- c+ header file support, via `#import`\
+in order to load a c+ header file you **must** use `#import`\
+import doesn't require you to specify if it's a global or local header\
+
+ex.
+
+```cpp
+#import header.hp
+or
+#import "header.hp" /* these do the same thing since the quotes are removed when parsed */
+```
+
+on unix systems (linux, macos, bsd, ect) c+ global header files are stored in `/usr/include/c+`
+
+on non-unix systems (i.e, windows) c+ global header files are stored in `../include/c+`\ 
+I highly suggest windows users to put the cplus compiler in the same directory where their c compiler is stored
+
+- specify alt c+ header folder via `#hpath`
+
+hpath allows the user to specify an alternative path to look for c-plus header files in 
+
+ex.
+
+```cpp
+#hpath "../include"
+#include "header.hp" 
+```
+
+# standard c features that are not supported yet
+- multi-line pre-processors
+- embeded structs ~
 - compiling from multiple sources
+
+# Future Features
 - allow class functions to directly edit the values of a struct w/o this->
 - void*/casting object functions
 - load object using data (eg. char*)
 - operator overloading
 - embeded namespaces
-- embeded structs ~
-- pre-processors (these aren't handled yet)
-- header files
 - string switches
+- typedef class carries over class functions
+- allow direct stucture managment in class functions (without `this->`)
+
+(read TODO for more info) 
 
 # Sili
 The C-Plus compiler uses the [Sili Toolchain](https://github.com/EimaMei/Sili-Toolchain) for handling strings, arrays and file I/O
