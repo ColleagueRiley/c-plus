@@ -461,6 +461,7 @@ usize si_impl_assert_msg(bool condition, cstring condition_str, cstring message,
 #define SI_ASSERT_MSG(condition, message) si_impl_assert_msg(condition, #condition, message, __FILE__, __LINE__)
 #define SI_ASSERT(condition) SI_ASSERT_MSG(condition, nil)
 #define SI_ASSERT_NOT_NULL(ptr) SI_ASSERT_MSG((ptr) != nil, #ptr " must not be NULL")
+#define SI_PANIC_MSG(message) si_impl_assert_msg(false, "SI_PANIC(" message ")", __FILE__, __LINE__, message, "")
 
 /*
 	========================
