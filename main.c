@@ -22,6 +22,7 @@
 
 #define STB_C_LEXER_IMPLEMENTATION
 #define SI_IMPLEMENTATION
+#define SI_ALLOCATOR_UNDEFINE
 
 #include "sili.h"
 
@@ -165,8 +166,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char *file){
                 if (si_string_len(namespace)) { /* if the struct is defined in a namespace */
                     /* add `namespace`_ to the structName */
 
-                    si_string_insert(&structName, namespace, -1);
-                    si_string_insert(&structName, "_", si_string_len(namespace) - 1);
+                    si_string_insert(&structName, namespace, 0);
+                    si_string_insert(&structName, "_", si_string_len(namespace));
                 }
 
                 si_string_append(c_code, structName); /* append the struct token to the code */
@@ -491,7 +492,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char *file){
             break;
         }
 
-        case '(': { 
+        case '(': {
             if (!structMode) { /* (we're not reading from a clas) */
                 if (si_string_len(namespace)) {                                      /* if we're writing a namespace */
                     si_string_pop(c_code);             /* erase the extra space */
@@ -532,8 +533,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char *file){
 
             si_string_append(&func, split[1]); /* append the functions name */
 
-            si_string_insert(&func, " ", -1);      /* add a space in front of the function to seperate the return type from the function */
-            si_string_insert(&func, split[0], -1); /* add the return type */
+            si_string_insert(&func, " ", 0);      /* add a space in front of the function to seperate the return type from the function */
+            si_string_insert(&func, split[0], 0); /* add the return type */
 
             si_array_free(split); /* free split since we don't need it anymore */
             /* it should look like this at this point
@@ -637,7 +638,7 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char *file){
 
                 i = si_string_rfind(*c_code, " ") + 1; /* get the class name based on the last space */
                 siString className = si_string_make(*c_code + i);
-    
+
                 si_string_pop(&className); /* this == `className`_ because it's apart of the function, so remove the extra _ with pop */
 
                 /* add "cplus_" before the function because all c++ class functions have cplus_ before them */
@@ -940,9 +941,8 @@ int main(int argc, char **argv){
             }
         }
 
-        else if (!si_string_len(c_args)) {                                     /* if c args aren't being collected */
+        else if (si_string_empty(c_args)) {                                     /* if c args aren't being collected */
             si_array_append(&files, argv[i]); /* add the arg to files */
-
             if (!si_path_exists(argv[i])) {                                                          /* check if the file exists */
                 printf("No such file or directory \"%s\"\n", argv[i]); /* send an error if it doesn't exist */
 
