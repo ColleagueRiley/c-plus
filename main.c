@@ -22,6 +22,7 @@
 
 #define STB_C_LEXER_IMPLEMENTATION
 #define SI_IMPLEMENTATION
+#define SI_ALLOCATOR_UNDEFINE
 
 #include "sili.h"
 
@@ -904,8 +905,6 @@ void parse_code(siString text, siString file, siString *c_code){
 }
 
 int main(int argc, char **argv){
-    si_init(SI_MEGA(16));
-
     siArray(char *) str;
     if (argc == 1) {              /* if there are no args, there are no files given */
     CPLUS_NO_FILE: /* for calling back if there are no files given */
@@ -926,7 +925,6 @@ int main(int argc, char **argv){
 
     int i;
     for (i = 1; i < argc; i++) { /* loop through the args */
-        printf("%s\n", argv[i]);
         if (argv[i][0] == '-') {                                                    /* if the first char is a - check for args */
             if (si_cstr_equal("-cc", argv[i]) && no_compile) /* arg to set the compiler */
                 compiler = argv[i++];
@@ -945,8 +943,6 @@ int main(int argc, char **argv){
 
         else if (si_string_empty(c_args)) {                                     /* if c args aren't being collected */
             si_array_append(&files, argv[i]); /* add the arg to files */
-            printf("Result: '%s'\n", files[0]);
-
             if (!si_path_exists(argv[i])) {                                                          /* check if the file exists */
                 printf("No such file or directory \"%s\"\n", argv[i]); /* send an error if it doesn't exist */
 
@@ -994,6 +990,4 @@ int main(int argc, char **argv){
     /* free the rest of the allocated data */
     si_string_free(c_args);
     si_array_free(files);
-
-    si_terminate();
 }
