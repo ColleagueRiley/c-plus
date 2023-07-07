@@ -196,8 +196,9 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char *file){
                 if (si_string_len(namespace)) { /* if the struct is defined in a namespace */
                     /* add `namespace`_ to the structName */
 
-                    si_string_insert(&structName, namespace, -1);
-                    si_string_insert(&structName, "_", si_string_len(namespace) - 1);
+                    si_string_insert(&structName, namespace, 0);
+                    si_string_push(&structName, '_');
+                    
                 }
 
                 si_string_append(c_code, structName); /* append the struct token to the code */
@@ -557,8 +558,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char *file){
 
             si_string_append(&func, split[1]); /* append the functions name */
 
-            si_string_insert(&func, " ", -1);      /* add a space in front of the function to seperate the return type from the function */
-            si_string_insert(&func, split[0], -1); /* add the return type */
+            si_string_insert(&func, " ", 0);      /* add a space in front of the function to seperate the return type from the function */
+            si_string_insert(&func, split[0], 0); /* add the return type */
 
             si_array_free(split); /* free split since we don't need it anymore */
             /* it should look like this at this point
@@ -669,7 +670,8 @@ siString *handle_token(stb_lexer *lexer, siString *c_code, char *file){
                 si_string_pop(&className); /* this == `className`_ because it's apart of the function, so remove the extra _ with pop */
 
                 /* add "cplus_" before the function because all c++ class functions have cplus_ before them */
-                si_string_insert(c_code, "cplus_", si_string_len(*c_code) - si_string_len(className) - 2);
+                si_string_insert(c_code, "cplus_", si_string_len(*c_code) - si_string_len(className) - 1);
+
 
                 while (lexer->token != '(') {                                      /* loop through the token until the `(` token */
                     stb_c_lexer_get_token(lexer);      /* get the next token */
@@ -831,7 +833,7 @@ void handle_preprocessors(siString *str /* c+ file */, siString *c_code /* c_cod
         if ((*str)[i] == '\n' && (*str)[i - 1] != '\\') /* if there's a new line, stop collecting the chars (and there isn't a \ before it (this is for longer macro functions)) */
             collect = false;
 
-        if (si_cstr_equal(line, "#import ")) {                                                           /* if the macro is an `import` macro */
+        if (si_cstr_equal(line, "#import ")) {   /* if the macro is an `import` macro */
             si_string_erase(c_code, si_string_len(*c_code) - 9, 9); /* remove "#import " from the c_code */
 
             si_string_free(line); /* free + clear the line because we're going to use it to collect the header's name */
@@ -862,8 +864,8 @@ void handle_preprocessors(siString *str /* c+ file */, siString *c_code /* c_cod
 
                     handle_preprocessors(&headerFile, c_code); /* handle the preprocessors in the header file */
 
-                    si_string_erase(str, i - 9 - si_string_len(line) - 2, 9 + si_string_len(line) + (enquouted * 2)); /* erase "#import `header-file`" from the c+ code string    */
-                    si_string_insert(str, headerFile, i - 9 - si_string_len(line) - (enquouted * 2));                 /* add the headerfile's code where the #import line was */
+                    si_string_erase(str, i - 9 - si_string_len(line) + 1, 9 + si_string_len(line) + (enquouted * 2)); /* erase "#import `header-file`" from the c+ code string    */
+                    si_string_insert(str, headerFile, i - 9 - si_string_len(line) - (enquouted * 2) + 1);                 /* add the headerfile's code where the #import line was */
 
                     /* close the file and free the data because we're done using it */
                     si_file_close(f);
@@ -871,8 +873,7 @@ void handle_preprocessors(siString *str /* c+ file */, siString *c_code /* c_cod
                     si_string_free(headerFile);
                     si_string_free(path);
 
-                    for (i; i >= 0 && (*str)[i + 1] != '\n'; i--)
-                        ;
+                    for (i; i >= 0 && (*str)[i + 1] != '\n'; i--);
 
                     break; /* break out for the for loop */
                 }
