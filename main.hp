@@ -1,0 +1,9 @@
+struct test {
+  int b;
+
+  void func();
+};
+
+void test::func() {
+
+}
