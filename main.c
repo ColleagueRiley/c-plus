@@ -965,6 +965,16 @@ int main(int argc, char **argv){
     int i;
     for (i = 1; i < argc; i++) { /* loop through the args */
         if (argv[i][0] == '-') {                                                    /* if the first char is a - check for args */
+	    if (si_cstr_equal("-h", argv[i]) || si_cstr_equal("--help", argv[i])) {
+		puts("Usage:");
+		printf("\t%s [FLAGS] file.cp\n\n", argv[0]);
+		puts("Flags:");
+		puts("\t-h/--help\tThis help message");
+		puts("\t-cc\t\tSet the compiler (default is gcc)");
+		puts("\t-no-compile\tDon't compile the outputted code");
+		puts("\t-o\t\tSet the name to the output file if -no-compile is on");
+		return 0;
+	    }
             if (si_cstr_equal("-cc", argv[i]) && no_compile) /* arg to set the compiler */
                 compiler = argv[i++];
 
